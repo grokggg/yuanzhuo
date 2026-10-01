@@ -1,0 +1,5 @@
+# UHES · 范式演化设计师 Agent 概念骨架依赖声明
+#
+# 本工程为【概念推演示意代码】，仅使用 Python 标准库，无任何第三方依赖。
+# 运行环境：Python >= 3.10（dataclass + typing 注解）。
+# 运行方式：python3 main.py
