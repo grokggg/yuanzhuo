@@ -176,10 +176,70 @@ class LLMMock:
         return dict(_MOCK_REVIEW)
 
     def _mock_blueprint(self, goal, domain, tags, hybrid_name):
+        # self 场景（UHES 自我优化）：产出自我优化蓝图
+        if "自举优化" in str(domain) or "UHES" in str(goal):
+            bp = json.loads(json.dumps(_MOCK_BLUEPRINT))
+            bp["system_identity"] = {
+                "proposed_name": "UHES 自我优化蓝图(mock)",
+                "domain": "系统自举优化",
+                "paradigm_tags": list(tags or []),
+                "blueprint_version": "self-0.1-mock",
+            }
+            bp["architecture"]["module_list"] = [
+                {"module_id": "M1", "module_name": "需求输入(S1-S3)", "state": "core"},
+                {"module_id": "M2", "module_name": "薄弱环节探测", "state": "core"},
+                {"module_id": "M3", "module_name": "降级回退审计", "state": "core"},
+                {"module_id": "M4", "module_name": "并发安全加固", "state": "core"},
+                {"module_id": "M5", "module_name": "价值判定参数敏感性分析", "state": "core"},
+                {"module_id": "M6", "module_name": "自举方案输出(S4-S5)", "state": "core"},
+                {"module_id": "M7", "module_name": "验证门控(三环)", "state": "core"},
+                {"module_id": "M8", "module_name": "观察闭环", "state": "optional"},
+            ]
+            bp["architecture"]["data_flow"] = [
+                {"from_module": f"M{i}", "to_module": f"M{i+1}",
+                 "data_entity": "优化项", "direction": "forward"} for i in range(1, 7)
+            ]
+            bp["open_issues"] = [
+                {"issue": "LLM 降级回退路径缺乏故障注入测试",
+                 "impact": "回退逻辑正确性未机器化验证",
+                 "suggested_resolution": "测试矩阵加入回退路径故障注入用例"},
+                {"issue": "API 并发提交时任务状态共享可变字典",
+                 "impact": "高并发下状态读写在 GIL 外无锁",
+                 "suggested_resolution": "任务存储改线程安全队列"},
+                {"issue": "进化价值判定阈值(PARADIGM_SIMILARITY_THRESHOLD)敏感",
+                 "impact": "阈值微调可能改变进化判定",
+                 "suggested_resolution": "参数敏感性分析纳入测试矩阵"},
+            ]
+            return {"blueprint": bp, "llm_available": True,
+                    "llm_note": "mock 蓝图(self 感知)"}
         return {"blueprint": json.loads(json.dumps(_MOCK_BLUEPRINT)),
                 "llm_available": True, "llm_note": "mock 蓝图"}
 
     def _mock_judge(self, goal, blueprint):
+        # self 场景：8 维自评含薄弱环节（可落地性/风险可控性降级）
+        if "UHES" in str(goal) or "自举" in str(blueprint):
+            scores = json.loads(json.dumps(_MOCK_JUDGE["scores"]))
+            for dim, detail in scores.items():
+                if dim == "可落地性":
+                    detail["grade"] = "B"
+                    detail["evidence"] = "薄弱环节识别需真实LLM细化"
+                if dim == "风险可控性":
+                    detail["grade"] = "B"
+                    detail["evidence"] = "进化判定阈值敏感性未量化"
+            return {"scores": scores, "defect_list": [
+                {"defect": "LLM降级回退路径缺乏故障注入测试",
+                 "dimension": "可验证性",
+                 "severity": "medium",
+                 "suggested_fix": "测试矩阵加入回退故障注入用例"},
+                {"defect": "API并发提交状态共享可变字典",
+                 "dimension": "可落地性",
+                 "severity": "medium",
+                 "suggested_fix": "任务存储改线程安全队列"},
+                {"defect": "进化价值判定阈值敏感",
+                 "dimension": "风险可控性",
+                 "severity": "low",
+                 "suggested_fix": "参数敏感性分析纳入测试矩阵"},
+            ], "llm_available": True, "llm_note": "mock judge(self 感知)"}
         return {"scores": json.loads(json.dumps(_MOCK_JUDGE["scores"])),
                 "llm_available": True, "llm_note": "mock judge"}
 
