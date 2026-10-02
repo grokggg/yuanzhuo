@@ -1,18 +1,18 @@
 # UHES 交付清单(MANIFEST)
 
-> 冻结原型 + LLM 驱动真实引擎(12 项优化 + 自我优化闭环)
+> 冻结原型 + LLM 驱动真实引擎(12 项优化 + 自我优化闭环 + 最终全貌报告)
 >
-> 基线提交: 5e2d936(自我优化闭环)
+> 基线提交: 待更新(docs/20 提交后)
 > 生成时间: 2026-10-02
-> 文件数: 38
+> 文件数: 39
 
 ## 文件清单(SHA256)
 
 | 文件 | SHA256 |
 |------|--------|
 | `./.gitignore` | `89f376f1962d0403233ced1f6b58ecf06f590d8b2004b5b66e8e69fb94fcabb0` |
-| `./MANIFEST.md` | `aa118df93e4052c097f2417d7d58d34bcc59bb27ad6ef276ac656718bcd0e360` |
-| `./README.md` | `f5c0ca51df0734cad7d870e36b77d81b040db654ace048ec01533b149228f972` |
+| `./MANIFEST.md` | `a3922d47bf04893c74df14da3cc14bf95ac27f82bf7f8341dcd732fc85c3a59f` |
+| `./README.md` | `f145b82e285fdd23ec82724b563594ab26bba1ca6e75a7c81a34c14287fb3d03` |
 | `./architecture/插件架构.md` | `39794bc3863a7050322707da8e6be1e2caa751890ae41577ae707fc55d267484` |
 | `./architecture/系统矩阵.md` | `de232fe42585c089d2a65ff41c5f11e1caf52fdbc0a7c4bc7c20bb4432c82a3a` |
 | `./architecture/范式库.md` | `7ace7299051f70c802d009879ada3621c4562da00d4dea36db9901675d24c47b` |
@@ -35,6 +35,7 @@
 | `./docs/17-业务案例集推演.md` | `3769c615456a044f2495a00510c66442cde41eb9372fef9e3ca5d4b8c1662547` |
 | `./docs/18-优化路线清单.md` | `fb540a19aa9914169651cf6a98d32746f7c56d5eb5b8048abd966517688e9c35` |
 | `./docs/19-自我优化闭环.md` | `2beb49a03794917c06194f51286c7da2daf21fffc7a5935c0fd07bf15f2b9058` |
+| `./docs/20-最终全貌报告.md` | `0954daa0e813dc095cfbc42b62e01fdab62342cd43f223347850e222118fe28b` |
 | `./src/README.md` | `58ac75623672ca588d51eeea8f55a91917ddd482dd9438a25583b87739ee0f7a` |
 | `./src/agents.py` | `2b6adad752c27799cdcd1834250954719aa873e480216e5568d83a002f44a6d4` |
 | `./src/api_server.py` | `ce158f1c98a2788e75e4e2651a89becb98e1e56da1ab2c1f4d359ff44e75435a` |
