@@ -1888,10 +1888,12 @@ def main() -> int:
     ap.add_argument("--case", default="lit_review",
                     choices=["lit_review", "analytics", "knowledge"],
                     help="内置概念演示案例（lit_review 文献综述 / analytics 数据分析 / knowledge 知识管理）")
-    ap.add_argument("--test", default=None, choices=["phase2", "phase3", "phase4"],
+    ap.add_argument("--test", default=None,
+                    choices=["phase2", "phase3", "phase4", "suite", "suite-real"],
                     help="运行阶段能力验证场景（phase2: 主动澄清/常态化交叉验证/终止输出；"
                          "phase3: 动力学杂交/关系网络/自动编排；"
-                         "phase4: 递归闭环有效进化/冗余迭代/深度保护）")
+                         "phase4: 递归闭环有效进化/冗余迭代/深度保护；"
+                         "suite: 集成测试矩阵(LLM mock,离线可重复)；suite-real: 真实LLM）")
     ap.add_argument("--out", default="delivery_package.json",
                     help="交付包 JSON 输出路径（默认 ./delivery_package.json）")
     ap.add_argument("--frozen-check", action="store_true",
@@ -1924,6 +1926,13 @@ def main() -> int:
     # ---- 阶段4能力验证（01 记忆匣阶段4【递归闭环】）----
     if args.test == "phase4":
         return _test_phase4()
+    # ---- 第9项优化：集成测试矩阵（LLM mock 离线 / 真实 LLM）----
+    if args.test in ("suite", "suite-real"):
+        import test_suite as _ts
+        res = _ts.run_suite(use_mock=(args.test == "suite"))
+        print(f"\n[TEST-SUITE] 结果: {res['passed']}/{res['total']} 通过, "
+              f"{res['failed']} 失败")
+        return 0 if res["failed"] == 0 else 1
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
     case_inputs = {
