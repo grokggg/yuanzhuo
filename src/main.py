@@ -229,8 +229,115 @@ def _embedding_match(dna: dict[str, Any]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# 1. 数据类型（概念 Schema，对应设计文档各节）
+# 0.6 LLM 评审通道（第3项优化：杂交决策 LLM 评审 + 确定性校验双通道）
+#    调智谱 GLM API（key 从环境变量读取,不硬编码,不入仓库）。
+#    确定性校验不依赖 LLM,保证离线可用;LLM 评审失败自动降级到确定性通道。
 # ---------------------------------------------------------------------------
+
+import urllib.request as _url_req
+
+_ZHIPU_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+_ZHIPU_MODEL = "glm-4-flash"
+_LLM_TIMEOUT = 20  # 秒
+
+
+def _zhipu_api_key() -> str:
+    """从环境变量读智谱 key(不入仓库)。"""
+    import os as _os
+    return _os.environ.get("ZHIPU_API_KEY", "") or _os.environ.get("ZHIPU_API_KEY_ALT", "")
+
+
+def _llm_review_hybrid(composite_name: str, source_paradigms: list[str],
+                       core_axioms: list[str], goal: str) -> dict[str, Any]:
+    """LLM 评审杂交合理性(第3项优化,真实调用智谱 GLM)。
+
+    返回: {"llm_verdict": "approve|reject|revise",
+           "llm_reason": str, "available": bool}
+    若 key 缺失或调用失败,available=False,降级走确定性通道。
+    """
+    key = _zhipu_api_key()
+    if not key:
+        return {"llm_verdict": "unavailable", "llm_reason": "无 ZHIPU_API_KEY,降级确定性通道",
+                "available": False}
+    prompt = (
+        "你是跨学科范式杂交评审专家。评估以下复合范式设计是否合理:"
+        f"\n- 目标系统: {goal}"
+        f"\n- 源范式: {'、'.join(source_paradigms)}"
+        f"\n- 复合范式名: {composite_name}"
+        f"\n- 合并公理: {'; '.join(core_axioms)}"
+        "\n请判断: 1) 两范式机制是否真可同构(非关键词拼接) "
+        "2) 合并公理是否自洽(无内部矛盾) "
+        "3) 是否应批准杂交。"
+        "\n只输出JSON: {\"verdict\": \"approve|reject|revise\", \"reason\": \"一句话理由\"}"
+    )
+    payload = {
+        "model": _ZHIPU_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 300,
+        "temperature": 0.3,
+    }
+    req = _url_req.Request(
+        _ZHIPU_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with _url_req.urlopen(req, timeout=_LLM_TIMEOUT) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        content = data["choices"][0]["message"]["content"].strip()
+        # 提取 JSON(容忍包围文本)
+        start, end = content.find("{"), content.rfind("}")
+        if start >= 0 and end > start:
+            parsed = json.loads(content[start:end + 1])
+            verdict = str(parsed.get("verdict", "revise")).lower()
+            reason = str(parsed.get("reason", "")).strip()
+        else:
+            verdict, reason = "revise", content[:100]
+        if verdict not in ("approve", "reject", "revise"):
+            verdict = "revise"
+        return {"llm_verdict": verdict, "llm_reason": reason, "available": True}
+    except Exception as exc:  # 网络/解析/超时 → 降级确定性通道
+        return {"llm_verdict": "unavailable", "llm_reason": f"LLM 调用失败: {exc}",
+                "available": False}
+
+
+def _deterministic_axiom_check(source_paradigms: list[str],
+                               core_axioms: list[str]) -> dict[str, Any]:
+    """确定性公理自洽校验(不依赖 LLM,离线可用)。
+
+    检查: 1) 源范式非空; 2) 合并公理非空;
+          3) 公理间显式矛盾词冲突(如"必须X"vs"禁止X"或同一维度双约束)。
+    返回: {"passed": bool, "issues": [str]}
+    """
+    issues: list[str] = []
+    if not source_paradigms or len(source_paradigms) < 2:
+        issues.append(f"源范式不足2个({len(source_paradigms)})")
+    if not core_axioms:
+        issues.append("合并公理为空")
+    # 显式矛盾检测:同一公理内同时出现正面约束与负面约束（同维度相反要求）
+    negative = ["不可", "禁止", "不应", "不能", "必须丢弃", "不得", "不可溯源", "不可复现"]
+    for ax in core_axioms:
+        # 正面判定:含正面词 且 该正面词未被"不/禁"否定
+        positives = ["必须", "应当", "要求", "允许", "可溯源", "可复现"]
+        has_neg = any(n in ax for n in negative)
+        has_pos = False
+        for p in positives:
+            idx = ax.find(p)
+            while idx >= 0:
+                prefix = ax[max(0, idx - 1)]
+                if prefix not in ("不", "无", "非"):
+                    has_pos = True
+                    break
+                idx = ax.find(p, idx + 1)
+            if has_pos:
+                break
+        if has_pos and has_neg:
+            issues.append(f"公理内部矛盾(同时含正面与负面约束): {ax[:30]}...")
+    return {"passed": not issues, "issues": issues}
+
+
+
 
 @dataclass
 class GateResult:
@@ -881,6 +988,53 @@ def step_s2_match(state: PIPELINE_STATE) -> None:
             },
         },
     }
+
+    # ---- 第3项优化：杂交决策双通道（LLM 评审 + 确定性校验）----
+    if len(hybrid_pool) >= 2:
+        goal_primary = dna.get("goal", {}).get("primary", "")
+        # 确定性校验（离线可用，先跑）
+        det = _deterministic_axiom_check(
+            [m["paradigm_name"] for m in hybrid_pool], core_axioms_merged)
+        # LLM 评审（真实调用智谱；key 缺失/失败自动降级）
+        llm = _llm_review_hybrid(
+            composite_name or "", [m["paradigm_name"] for m in hybrid_pool],
+            core_axioms_merged, goal_primary)
+        llm_verdict = llm.get("llm_verdict", "unavailable")
+        # 双通道裁决:确定性 passed + LLM approve → 批准;否则降级或标记
+        if not det["passed"]:
+            # 确定性发现问题 → 杂交降级为单范式
+            hybrid_branch = "single"
+            hybrid_depth = "none"
+            selected_ids = [m["paradigm_id"] for m in hybrid_pool[:1]]
+            s2["hybridization"].update({
+                "branch": hybrid_branch, "hybrid_depth": hybrid_depth,
+                "selected_paradigm_ids": selected_ids,
+                "composite_paradigm": None,
+                "degradation_note": f"确定性校验未通过({det['issues'][:1]})，降级单范式",
+            })
+            s2["match_confidence"] = "medium"
+        elif llm_verdict == "reject":
+            # LLM 否决 → 降级单范式（保留确定性问题说明）
+            s2["hybridization"].update({
+                "branch": "single", "hybrid_depth": "none",
+                "selected_paradigm_ids": [m["paradigm_id"] for m in hybrid_pool[:1]],
+                "composite_paradigm": None,
+                "degradation_note": f"LLM评审否决({llm.get('llm_reason','')})，降级单范式",
+            })
+            s2["match_confidence"] = "medium"
+        elif llm_verdict == "revise":
+            # LLM 建议修订 → 保留杂交但标记待修订
+            s2["hybridization"].setdefault("composite_paradigm", {})
+            s2["hybridization"]["composite_paradigm"]["llm_revision_note"] = \
+                llm.get("llm_reason", "")
+        # 双通道评审记录写入 provenance
+        s2["provenance"]["dual_channel_review"] = {
+            "deterministic": det,
+            "llm": llm,
+            "decision": "hybrid_approved" if (
+                det["passed"] and llm_verdict == "approve") else (
+                "hybrid_revised" if llm_verdict == "revise" else "hybrid_degraded"),
+        }
 
     if dynamics_on:
         # 阶段3：动力学等价杂交扩展（概念层声明，不编造真实方程）
