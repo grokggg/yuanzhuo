@@ -1,8 +1,8 @@
 {
   "package_meta": {
-    "run_id": "run_knowledge_demo",
+    "run_id": "run_lit_review_demo",
     "package_version": "1.0",
-    "generated_at": "2026-10-02T06:33:12+00:00",
+    "generated_at": "2026-10-02T07:16:09+00:00",
     "final_status": "completed",
     "degradation_records": [],
     "paradigm_catalog_version": "29组初始版",
@@ -182,55 +182,73 @@
     "02_composite_paradigm_spec": {
       "matched_paradigms": [
         {
-          "paradigm_id": "para_info_theory_10",
-          "paradigm_name": "信息论",
+          "paradigm_id": "para_lang_18",
+          "paradigm_name": "语言学范式",
           "match_level": "high",
-          "match_rationale": "翻译损耗本质是信道噪声",
-          "axiom_coverage_note": "高",
-          "contradictions": []
+          "match_rationale": "embedding 相似度 0.310(n-gram 向量余弦)",
+          "axiom_coverage_note": "中",
+          "contradictions": [],
+          "embedding_similarity": 0.31
+        },
+        {
+          "paradigm_id": "para_info_10",
+          "paradigm_name": "信息论范式",
+          "match_level": "high",
+          "match_rationale": "embedding 相似度 0.296(n-gram 向量余弦)",
+          "axiom_coverage_note": "中",
+          "contradictions": [],
+          "embedding_similarity": 0.296
+        },
+        {
+          "paradigm_id": "para_complex_07",
+          "paradigm_name": "复杂系统范式",
+          "match_level": "medium",
+          "match_rationale": "embedding 相似度 0.215(n-gram 向量余弦)",
+          "axiom_coverage_note": "中",
+          "contradictions": [],
+          "embedding_similarity": 0.215
+        },
+        {
+          "paradigm_id": "para_system_09",
+          "paradigm_name": "系统论范式",
+          "match_level": "medium",
+          "match_rationale": "embedding 相似度 0.203(n-gram 向量余弦)",
+          "axiom_coverage_note": "中",
+          "contradictions": [],
+          "embedding_similarity": 0.203
         },
         {
           "paradigm_id": "para_research_29",
           "paradigm_name": "科研范式",
-          "match_level": "high",
-          "match_rationale": "综述验证/可证伪性/复现性",
-          "axiom_coverage_note": "高",
-          "contradictions": []
-        },
-        {
-          "paradigm_id": "para_ling_xx",
-          "paradigm_name": "语言学",
           "match_level": "medium",
-          "match_rationale": "术语对齐/语义保持",
+          "match_rationale": "embedding 相似度 0.173(n-gram 向量余弦)",
           "axiom_coverage_note": "中",
-          "contradictions": []
+          "contradictions": [],
+          "embedding_similarity": 0.173
         }
       ],
       "hybridization": {
         "branch": "structure_hybrid",
         "hybrid_depth": "structure",
         "selected_paradigm_ids": [
-          "para_info_theory_10",
-          "para_research_29"
+          "para_lang_18",
+          "para_info_10"
         ],
         "composite_paradigm": {
-          "id": "para_evidence_channel_coding_v1",
-          "name": "证据信道编码范式",
+          "id": "composite_18_10",
+          "name": "语言学范式×信息论范式复合范式",
           "core_axioms_merged": [
-            "证据在传递链路中必然受噪声影响(信息论公理)",
-            "证据噪声可通过冗余锚定纠错(信息论机制迁移)",
-            "综述结论必须可证伪、可复现(科研范式公理)",
-            "不可溯源的结论视为信道不可恢复错误,必须丢弃或显式标注(两范式交叉约束)"
+            "语言学范式公理:机制迁移到目标领域",
+            "信息论范式公理:约束目标领域边界",
+            "两范式交叉约束:不可溯源/不可复现的产物标记为无效(共同推论)"
           ],
           "source_paradigms": [
-            "para_info_theory_10",
-            "para_research_29"
+            "para_lang_18",
+            "para_info_10"
           ],
-          "isomorphism_relations_used": [
-            "iso_info_research_evidence_channel"
-          ],
+          "isomorphism_relations_used": [],
           "self_consistency_checked": true,
-          "consistency_check_report": "两范式公理无冲突:信息论描述传递机制,科研范式定义验证标准,交叉约束是共同推论"
+          "consistency_check_report": "两范式公理无冲突:机制迁移+边界约束,交叉约束是共同推论"
         },
         "degradation_note": null
       },
@@ -238,10 +256,10 @@
         "should_trigger": true,
         "trigger_reason": "risks 含 high 级（触发条件第2条）",
         "recommended_expert_subset": [
-          "信息论",
-          "语言学",
-          "科研方法论",
-          "复杂系统"
+          "语言学范式",
+          "信息论范式",
+          "复杂系统范式",
+          "系统论范式"
         ]
       },
       "roundtable_skipped_audit": null,
@@ -249,7 +267,11 @@
       "provenance": {
         "dna_ref": "S1.artifacts.dna",
         "paradigm_catalog_version": "29组初始版",
-        "methodology_catalog_version": "30条常驻"
+        "methodology_catalog_version": "30条常驻",
+        "embedding": {
+          "method": "char-n-gram + cosine",
+          "note": "概念级 n-gram embedding 动态匹配(替代硬编码)"
+        }
       }
     },
     "03_system_blueprint": {
@@ -767,33 +789,33 @@
         },
         {
           "artifact_id": "02",
-          "hash": "7b851a3d0b7d7429",
+          "hash": "1a9e486c82e45f17",
           "prev_hash": "6452c4a115fa7441"
         },
         {
           "artifact_id": "03",
-          "hash": "0d42e7e408c6c3f7",
-          "prev_hash": "7b851a3d0b7d7429"
+          "hash": "bd3fa0c0422b9a81",
+          "prev_hash": "1a9e486c82e45f17"
         },
         {
           "artifact_id": "04",
-          "hash": "2030035269709ba2",
-          "prev_hash": "0d42e7e408c6c3f7"
+          "hash": "0b5a438fc1340ceb",
+          "prev_hash": "bd3fa0c0422b9a81"
         },
         {
           "artifact_id": "05",
-          "hash": "8c1784d0f7107681",
-          "prev_hash": "2030035269709ba2"
+          "hash": "f7d5a218d00ae53d",
+          "prev_hash": "0b5a438fc1340ceb"
         },
         {
           "artifact_id": "06",
-          "hash": "113a5b06a1901372",
-          "prev_hash": "8c1784d0f7107681"
+          "hash": "0757b175d4614a71",
+          "prev_hash": "f7d5a218d00ae53d"
         },
         {
           "artifact_id": "07",
-          "hash": "1cbef8753dc2e0a8",
-          "prev_hash": "113a5b06a1901372"
+          "hash": "a5ac37bccb7a414b",
+          "prev_hash": "0757b175d4614a71"
         }
       ],
       "chain_integrity": true,

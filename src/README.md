@@ -23,6 +23,7 @@ python3 main.py --test phase3    # 阶段3扩展验证（动力学杂交/关系�
 python3 main.py --test phase4    # 阶段4递归闭环验证（有效进化/冗余迭代/深度保护）
 python3 main.py --frozen-check   # 冻结校验（引擎未改/开关默认关/步骤集未变/参数基线）
 python3 main.py --trace          # 结构化事件流输出（JSON Lines，供回归机器化校验）
+# 第2项优化:范式匹配 embedding 化(S2 从 DNA.paradigm_hints 动态 n-gram 匹配,替代硬编码)
 ```
 
 ## 阶段能力状态
