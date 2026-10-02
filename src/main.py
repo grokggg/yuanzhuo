@@ -1904,6 +1904,8 @@ def main() -> int:
                     help="输出结构化流水线事件流（JSON Lines，供回归测试/故障注入机器化校验）")
     ap.add_argument("--agent", default="",
                     help="多Agent分工（第10项优化：designer/validator/auditor 三环协作，如 --agent lit_review）")
+    ap.add_argument("--api", action="store_true",
+                    help="启动HTTP API服务（第11项优化：POST /jobs 提交→GET 轮询→取包）")
     args = ap.parse_args()
 
     banner = textwrap.dedent("""
@@ -1947,6 +1949,10 @@ def main() -> int:
         print(f"  审计器: {report['audit']['verdict']} "
               f"发现={report['audit']['findings'] or '无'}")
         return 0 if report["final_verdict"] == "deliver" else 1
+    # ---- 第11项优化：HTTP API 服务 ----
+    if args.api:
+        import api_server as _api
+        _api.run_server()
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
     case_inputs = {

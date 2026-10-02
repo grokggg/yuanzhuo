@@ -147,8 +147,17 @@ class LLMMock:
             setattr(main_mod, name, fn)
 
     def _mock_parse(self, raw, context):
-        return {"dna": json.loads(json.dumps(_MOCK_DNA)), "llm_available": True,
-                "llm_note": "mock 解析"}
+        # mock 解析：主目标取自 raw（自定义需求也能离线解析出真实目标）
+        dna = json.loads(json.dumps(_MOCK_DNA))
+        if raw:
+            # 从 raw 提取主目标（首句截断）+ 领域线索
+            first_line = raw.strip().split("\n")[0][:40]
+            dna["goal"]["primary"] = first_line
+            hint = context.get("domain_hint", "") if isinstance(context, dict) else ""
+            if hint:
+                dna["paradigm_hints"] = [hint, "信息论", "系统论", "数据驱动"]
+        return {"dna": dna, "llm_available": True,
+                "llm_note": "mock 解析(raw 驱动)"}
 
     def _mock_review(self, composite_name, sources, axioms, goal):
         return dict(_MOCK_REVIEW)
