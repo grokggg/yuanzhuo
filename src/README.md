@@ -22,7 +22,7 @@ python3 main.py --test phase2    # 阶段2能力验证（主动澄清/常态化�
 python3 main.py --test phase3    # 阶段3扩展验证（动力学杂交/关系网络/自动编排/默认关闭）
 python3 main.py --test phase4    # 阶段4递归闭环验证（有效进化/冗余迭代/深度保护）
 python3 main.py --frozen-check   # 冻结校验（引擎未改/开关默认关/步骤集未变/参数基线）
-python3 main.py --trace          # 结构化事件流输出（JSON Lines，供回归机器化校验）
+python3 main.py --trace          # 第8项优化:事件总线(span树+指标聚合+JSONL事件流)
 python3 main.py --plugins src/plugins # 第7项优化:动态加载插件覆盖侧车(示例 step_s1_llm)
 # 第6项优化:矩阵持久化(UHES_MATRIX_DB=<db路径> python3 main.py --test phase4 启用SQLite持久化)
 # 第3项优化:杂交决策双通道(S2 LLM评审+确定性校验;设置 ZHIPU_API_KEY 启用真实LLM,无key自动降级确定性通道)

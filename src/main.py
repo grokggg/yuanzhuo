@@ -1950,23 +1950,45 @@ def main() -> int:
         if not loaded_names:
             print(f"[UHES-PLUGIN] 插件目录 {args.plugins} 无契约合规插件（用内置侧车）")
 
-    package = pipeline.run(case_inputs[args.case]())
-
-    # 可观测性：结构化事件流输出（--trace，供回归/故障注入机器化校验）
+    # ---- 第8项优化：可观测性事件总线（不修改冻结引擎，外层观测包裹）----
     if args.trace:
-        print("\n[UHES-TRACE] 流水线事件流（JSON Lines）")
+        import observability as _obs
+        bus = _obs.ObservabilityBus(run_id=f"run_{args.case}_demo")
+        # 订阅：降级/回退事件记录到总线
+        bus.subscribe(lambda et, ev: None)
+        # 用 span 包裹流水线运行（根 span → 各步骤由 step_history 映射）
+        with bus.span("pipeline", {"case": args.case}):
+            package = pipeline.run(case_inputs[args.case]())
+        # 从 step_history 补录各步事件（span 标记为事后补录,不伪造耗时）
         for rec in pipeline.state.step_history:
-            event = {
-                "step": rec.step_name,
-                "status": rec.status,
-                "gate": rec.gate_decision,
-                "degradation_note": rec.degradation_note,
-            }
-            print(json.dumps(event, ensure_ascii=False))
-        print(f"[UHES-TRACE] 事件总数={len(pipeline.state.step_history)} | "
-              f"最终状态={pipeline.state.final_status} | "
-              f"degradation={pipeline.state.degradation_count} | "
-              f"rollback={pipeline.state.rollback_count}")
+            bus.record_event(_obs.EVENT_STEP_START, {
+                "span": f"step:{rec.step_name}",
+                "recorded_posthoc": True, "status": rec.status,
+                "gate": rec.gate_decision})
+            if rec.status == "degraded":
+                bus.record_event(_obs.EVENT_DEGRADE, {"step": rec.step_name})
+            elif "回退" in (rec.gate_decision or ""):
+                bus.record_event(_obs.EVENT_ROLLBACK, {"step": rec.step_name})
+            elif rec.status == "skipped":
+                bus.record_event(_obs.EVENT_STEP_SKIP, {"step": rec.step_name})
+        bus.record_event(_obs.EVENT_PIPELINE_END, {
+            "final_status": pipeline.state.final_status,
+            "degradation": pipeline.state.degradation_count,
+            "rollback": pipeline.state.rollback_count,
+        })
+        print("\n[UHES-TRACE] 事件总线：span 树")
+        print(bus.export_span_tree())
+        print("[UHES-TRACE] 指标摘要")
+        metrics = bus.export_metrics()
+        print(f"  总步数={metrics['total_steps']} | 降级率={metrics['degradation_rate']} | "
+              f"回退率={metrics['rollback_rate']} | 总耗时={metrics['total_duration_ms']}ms")
+        for sname, stat in metrics["step_stats"].items():
+            print(f"  {sname:<6} count={stat['count']} avg={stat['avg_ms']}ms "
+                  f"max={stat['max_ms']}ms")
+        print("[UHES-TRACE] 事件流（JSON Lines）")
+        print(bus.export_jsonl())
+    else:
+        package = pipeline.run(case_inputs[args.case]())
 
     # 输出交付包
     out_path = args.out
