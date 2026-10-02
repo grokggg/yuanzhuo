@@ -1,17 +1,17 @@
 # UHES 交付清单(MANIFEST)
 
-> 冻结原型 + LLM 真实引擎 + 工程级迭代(14-17)
+> 冻结原型 + LLM 真实引擎 + 工程级迭代 + 自举验证
 >
-> 基线提交: e658988(工程级迭代14-17)
-> 文件数: 53
+> 基线提交: 待更新(docs/21 提交后)
+> 文件数: 50
 
 ## 文件清单(SHA256)
 
 | 文件 | SHA256 |
 |------|--------|
 | `./.gitignore` | `89f376f1962d0403233ced1f6b58ecf06f590d8b2004b5b66e8e69fb94fcabb0` |
-| `./MANIFEST.md` | `795fc7dac408612791d2a1ce92797d09311cfaf55f543f1da6be40a261855715` |
-| `./README.md` | `f145b82e285fdd23ec82724b563594ab26bba1ca6e75a7c81a34c14287fb3d03` |
+| `./MANIFEST.md` | `33df36bd95055c40edc7d6128f87009062084726778da4c24441495999203335` |
+| `./README.md` | `6955e7bfced213480a648a9688ce694a9eb1bd87d9cd928d1c0fd413ee1e6937` |
 | `./architecture/插件架构.md` | `39794bc3863a7050322707da8e6be1e2caa751890ae41577ae707fc55d267484` |
 | `./architecture/系统矩阵.md` | `de232fe42585c089d2a65ff41c5f11e1caf52fdbc0a7c4bc7c20bb4432c82a3a` |
 | `./architecture/范式库.md` | `7ace7299051f70c802d009879ada3621c4562da00d4dea36db9901675d24c47b` |
@@ -35,15 +35,13 @@
 | `./docs/18-优化路线清单.md` | `9ff5843e5d2d46f84fca1c82879a8a168caf3333f26af818b3b768df2f7c102e` |
 | `./docs/19-自我优化闭环.md` | `2beb49a03794917c06194f51286c7da2daf21fffc7a5935c0fd07bf15f2b9058` |
 | `./docs/20-最终全貌报告.md` | `0954daa0e813dc095cfbc42b62e01fdab62342cd43f223347850e222118fe28b` |
+| `./docs/21-圆桌专家审议自我优化.md` | `45f48960851e7a55285eca2050002bf5e184beea8028e9e07ca60d2c112b7b57` |
 | `./src/README.md` | `fef2acf92af658dfeab73bd17d706a85a429a3261771fe7856053aa4d45c3c1e` |
-| `./src/__pycache__/api_server.cpython-313.pyc` | `f2654a5ccbbd1bf8ffc2ad622bbe9bf368d01772857b8748846d7e50748f7b6e` |
+| `./src/__pycache__/agents.cpython-313.pyc` | `34d355da202a98709aac4e31e4cf1c52f70f39210c499d54e515d1e302f1a8ef` |
 | `./src/__pycache__/evolution.cpython-313.pyc` | `8f7afe278c662331c3431131ad98e49d9e9b74bf5fd4422b541be3ef45a30212` |
 | `./src/__pycache__/experts.cpython-313.pyc` | `9acf7e965dd26943dcbba86e61f567a0262af85e6e6bd20e948b41a97abe2646` |
-| `./src/__pycache__/homology.cpython-313.pyc` | `99ce17e6c22b8028274c7e0ab9b9d797c13defdef78620353d3879716997ef7b` |
 | `./src/__pycache__/main.cpython-313.pyc` | `9e1d8ed116a959cf866aab4552305e690ea5706dd661959ea46916008eabef98` |
 | `./src/__pycache__/matrix_store.cpython-313.pyc` | `93da8b94d9176d0adf53439b803d680cea6658826e3546b9fb06d4393497d639` |
-| `./src/__pycache__/observability.cpython-313.pyc` | `cd611efac1a71c9913e1636cfd69507d41815efd50b316606b69302ee442175e` |
-| `./src/__pycache__/plugin_runtime.cpython-313.pyc` | `486741e6891b85ea5cb7bf5267a82c654fe5a185a3132e215a5c30b5d523d290` |
 | `./src/__pycache__/test_suite.cpython-313.pyc` | `7d4a063e4607fd2076c33d1902c3fd102686c770e1187240a089cc65cfef003c` |
 | `./src/agents.py` | `2b6adad752c27799cdcd1834250954719aa873e480216e5568d83a002f44a6d4` |
 | `./src/api_server.py` | `7f8b337d3d8b5346e3d7f0b4946aca93e73ebb54abc7087f9fe38486dc5eab47` |
@@ -57,8 +55,7 @@
 | `./src/observability.py` | `22e64a6d04e07d227ed5822e705cdfccf4ca30c183b70d1950078707c976cbe7` |
 | `./src/paradigms.py` | `d9269e7af5aa6950295d234f3c7bc7eb21edc296f730677c195e06775a58e99a` |
 | `./src/plugin_runtime.py` | `0b8b5d7f2f7006a40602b87df76a835d675f61874d6163bbfe14b69289d419c3` |
-| `./src/plugins/__pycache__/step_s1_llm.cpython-313.pyc` | `c627d3056b817ae7d7537558845ea3703eb72df3edfbf689068e910b62918dd2` |
 | `./src/plugins/step_s1_llm.py` | `a7e3d781e8831c56c39428cb66c6e4d2c3eb32e471ed38d0cac51856a3936982` |
 | `./src/requirements.txt` | `913c872d36f7860de7f4a0a6d2ea5c798ff56bc9113e11fe779fcc97ae9d52be` |
-| `./src/self_optimize.py` | `7388e78c8b441d8feaa1570fa636a945287f2d9105ee00836b142852f60dcae6` |
+| `./src/self_optimize.py` | `d299a760b4a3863321d728efc7aba8801616d68e4077e7fa257831712be52222` |
 | `./src/test_suite.py` | `a2e4063aa0d83a36cc7229c1438fd68571e16fd10c69aa5b995569a03653bb29` |

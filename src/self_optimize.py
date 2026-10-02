@@ -76,6 +76,20 @@ def run_self_optimize(db_path: Optional[str] = None,
         except Exception:
             pass
 
+    # 0. 第18项优化：圆桌专家审议"如何优化 UHES"（自举验证真圆桌）
+    roundtable_report: dict[str, Any] = {}
+    try:
+        import experts as _exp
+        roundtable_report = _exp.run_roundtable(
+            requirement=SELF_REQUIREMENT,
+            paradigm_hints=["系统论", "信息论", "复杂系统", "软件工程",
+                            "控制论", "科研范式"],
+            design_summary="UHES 当前状态: 12项优化+工程级迭代,待自我优化",
+            use_mock=use_mock,
+            max_experts=6)
+    except Exception as exc:
+        roundtable_report = {"error": str(exc)}
+
     # 1. 设计师：全链路流水线（UHES 自我优化需求）
     pipeline = _main.build_pipeline(run_id="self_optimize_r1")
     pkg = pipeline.run(build_self_input())
@@ -129,6 +143,7 @@ def run_self_optimize(db_path: Optional[str] = None,
     report = {
         "ok": (pipeline.state.final_status == "completed"
                and final_verdict == "deliver"),
+        "roundtable": roundtable_report,  # 第18项：圆桌专家审议意见
         "pipeline": {
             "run_id": pipeline.run_id if hasattr(pipeline, "run_id") else "self_optimize_r1",
             "final_status": pipeline.state.final_status,
@@ -165,6 +180,18 @@ def _print_report(report: dict[str, Any]) -> None:
           f"审计器{report['review']['auditor']['verdict']})")
     print(f"  矩阵登记: {report['evolution']['registered']} "
           f"版本链={'→'.join(report['evolution']['version_chain'])}")
+
+    # 第18项：圆桌专家审议输出
+    rt = report.get("roundtable", {})
+    if rt and rt.get("session_meta"):
+        print(f"\n  [圆桌专家审议] {rt['session_meta']['expert_count']} 位专家 "
+              f"({rt['session_meta']['llm_mode']})")
+        print(f"    专家: {rt['session_meta']['expert_subset']}")
+        for c in rt.get("findings", {}).get("consensus_list", [])[:3]:
+            print(f"    共识: {c[:60]}")
+        methods = rt.get("findings", {}).get("recommended_methodologies", [])
+        if methods:
+            print(f"    推荐方法论: {methods[:4]}")
 
     dna = report["design"]["dna"]
     print(f"\n  DNA主目标: {dna.get('goal', {}).get('primary', '')[:60]}")
