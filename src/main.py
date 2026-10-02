@@ -1896,6 +1896,8 @@ def main() -> int:
                     help="交付包 JSON 输出路径（默认 ./delivery_package.json）")
     ap.add_argument("--frozen-check", action="store_true",
                     help="冻结校验：确认引擎主体未改动、扩展开关默认关闭、无新增步骤（纯侧车校验，不改动任何代码）")
+    ap.add_argument("--plugins", default="",
+                    help="插件目录（第7项优化：动态加载插件覆盖对应步骤侧车，如 src/plugins）")
     ap.add_argument("--trace", action="store_true",
                     help="输出结构化流水线事件流（JSON Lines，供回归测试/故障注入机器化校验）")
     args = ap.parse_args()
@@ -1929,6 +1931,25 @@ def main() -> int:
         "analytics": demo_input_analytics,
         "knowledge": demo_input_knowledge,
     }
+
+    # ---- 第7项优化：插件运行时（动态加载覆盖侧车）----
+    if args.plugins:
+        import plugin_runtime as _pr
+        rt = _pr.PluginRuntime(plugin_dir=args.plugins)
+        loaded_names = rt.load_dir()
+        for pname in loaded_names:
+            rec = rt.load(pname)
+            step = rec["step"]
+            # 覆盖对应步骤的 handler（引擎门控不变，仅替换实现，非侵入）
+            for i, (sname, handler, gate) in enumerate(pipeline._steps):
+                if sname == step:
+                    pipeline._steps[i] = (sname, rec["handle"], gate)
+                    print(f"[UHES-PLUGIN] 插件 {pname} → 覆盖 {step} 侧车"
+                          f"(预算{rec['resource_budget']})")
+                    break
+        if not loaded_names:
+            print(f"[UHES-PLUGIN] 插件目录 {args.plugins} 无契约合规插件（用内置侧车）")
+
     package = pipeline.run(case_inputs[args.case]())
 
     # 可观测性：结构化事件流输出（--trace，供回归/故障注入机器化校验）
