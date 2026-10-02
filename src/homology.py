@@ -110,7 +110,7 @@ SEED_HOMOLOGIES: list[dict[str, Any]] = [
 class HomologyDB:
     """同构关系数据库（SQLite 持久化 + 内存兜底）。"""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None) -> None:
         self.db_path = db_path
         self._conn: Optional[sqlite3.Connection] = None
         if db_path:

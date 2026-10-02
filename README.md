@@ -6,6 +6,43 @@
 
 > 系统之母 · 元系统锻造厂 · 基于Meta-Agent范式的智能体系统生成器
 
+<!-- 第21项优化：工程化 Badge（开源项目标配） -->
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Tests](https://img.shields.io/badge/tests-14%20cases-green)
+![LLM](https://img.shields.io/badge/LLM-GLM--4--flash-orange)
+![CI](https://github.com/grokggg/yuanzhuo/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Files](https://img.shields.io/badge/files-47-green)
+
+## 快速开始（第21项优化）
+
+```bash
+# 1. 克隆
+git clone https://github.com/grokggg/yuanzhuo.git && cd yuanzhuo
+
+# 2. 全链路演示（离线 mock，零依赖）
+cd src && python3 main.py --case lit_review
+
+# 3. 集成测试矩阵（14 用例）
+python3 main.py --test suite
+
+# 4. 冻结校验（核心骨架未动）
+python3 main.py --frozen-check
+
+# 5. 100 用户压测（快速版 20 用户）
+python3 user_simulator.py --count 20
+
+# 6. 真实 LLM 模式（需 ZHIPU_API_KEY 环境变量）
+python3 main.py --case lit_review   # 自动走 LLM，无 key 自动回退 mock
+
+# 7. HTTP API 服务（提交→轮询→取包）
+python3 main.py --api
+curl -X POST http://127.0.0.1:8765/jobs -H "Content-Type: application/json" \
+     -d '{"raw":"做一个团队任务管理系统"}'
+```
+
+> 全部命令零第三方依赖（纯 Python 标准库），离线可跑。
+
 ## 项目定位
 
 UHES不是单一预测/问答系统，是**生成强大系统的元系统（系统生成器）**。由「系统生成器 + 理论融合器 + 架构进化器」三部分构成，通过理论范式杂交产出可落地业务系统，实现"系统生成系统"递归闭环。

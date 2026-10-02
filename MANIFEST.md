@@ -1,17 +1,18 @@
 # UHES 交付清单(MANIFEST)
 
-> 冻结原型 + LLM 真实引擎 + 工程级迭代 + 用户压测 + 反馈优化
+> 冻结原型 + LLM 真实引擎 + 工程级迭代 + 用户压测 + 反馈优化 + 工程化收尾
 >
-> 基线提交: 待更新(第20项提交后)
-> 文件数: 57
+> 基线提交: 待更新(第21项提交后)
+> 文件数: 48
 
 ## 文件清单(SHA256)
 
 | 文件 | SHA256 |
 |------|--------|
+| `./.github/workflows/ci.yml` | `0b360cc6ad278dd8896c51ea0b3b5ce8807f1e13b602d529163653ee7f6d0d4c` |
 | `./.gitignore` | `89f376f1962d0403233ced1f6b58ecf06f590d8b2004b5b66e8e69fb94fcabb0` |
-| `./MANIFEST.md` | `04429f0fad81eddcc1a970edbcf5359435cb8c6397f616850060b4fd88179f76` |
-| `./README.md` | `7c3d39bce05b972a775584b84a69588864bd22be84427151f2174016c13679de` |
+| `./MANIFEST.md` | `cc1698b8b322da6886a54b97c24d713a5d1036d2fb077c995271f629e67001af` |
+| `./README.md` | `5de4e42bba25c2228869f9714fbfb70fbddf88411b89ce4c382dca255a26f21f` |
 | `./architecture/插件架构.md` | `39794bc3863a7050322707da8e6be1e2caa751890ae41577ae707fc55d267484` |
 | `./architecture/系统矩阵.md` | `de232fe42585c089d2a65ff41c5f11e1caf52fdbc0a7c4bc7c20bb4432c82a3a` |
 | `./architecture/范式库.md` | `7ace7299051f70c802d009879ada3621c4562da00d4dea36db9901675d24c47b` |
@@ -36,31 +37,21 @@
 | `./docs/19-自我优化闭环.md` | `2beb49a03794917c06194f51286c7da2daf21fffc7a5935c0fd07bf15f2b9058` |
 | `./docs/20-最终全貌报告.md` | `0954daa0e813dc095cfbc42b62e01fdab62342cd43f223347850e222118fe28b` |
 | `./docs/21-圆桌专家审议自我优化.md` | `45f48960851e7a55285eca2050002bf5e184beea8028e9e07ca60d2c112b7b57` |
-| `./docs/22-100用户压力模拟.md` | `af10c2d855447005d536106ba9c16b8e2147032adc496cb4a2d76029183e83d7` |
+| `./docs/22-100用户压力模拟.md` | `b8ba357991a926754f092f93495c2c189d261a620e2c297175072b7bc40cc213` |
 | `./src/README.md` | `2a5a21bbbd9c623c6d914d4177b566ff1a31fea31f679b57b622c160f148d759` |
-| `./src/__pycache__/api_server.cpython-313.pyc` | `f2654a5ccbbd1bf8ffc2ad622bbe9bf368d01772857b8748846d7e50748f7b6e` |
-| `./src/__pycache__/evolution.cpython-313.pyc` | `c44420c133f1d9a7ff3fe8a2a5f157e23ff5460679eb00bdf8b0c254bf18c4c6` |
-| `./src/__pycache__/experts.cpython-313.pyc` | `5937ad86e7af766a3cb396b23a4b22f0607d795d76cfbbe8713f14d4516bddff` |
-| `./src/__pycache__/llm_gateway.cpython-313.pyc` | `a2843e767abdcae5a2903c2eef3a9f01e533fc7aaf39c3a84c1d8e47f48493c3` |
-| `./src/__pycache__/main.cpython-313.pyc` | `6a1b9901b87655caa05a61d25cb2c5421b9a470a83ec1697317596ff71ceb6e9` |
-| `./src/__pycache__/matrix_store.cpython-313.pyc` | `93da8b94d9176d0adf53439b803d680cea6658826e3546b9fb06d4393497d639` |
-| `./src/__pycache__/observability.cpython-313.pyc` | `cd611efac1a71c9913e1636cfd69507d41815efd50b316606b69302ee442175e` |
-| `./src/__pycache__/plugin_runtime.cpython-313.pyc` | `486741e6891b85ea5cb7bf5267a82c654fe5a185a3132e215a5c30b5d523d290` |
-| `./src/__pycache__/test_suite.cpython-313.pyc` | `9f8f485e8b0b9bfd2aba4add345d59d78843954a3f79081daa8354dec70c2f0d` |
 | `./src/agents.py` | `2b6adad752c27799cdcd1834250954719aa873e480216e5568d83a002f44a6d4` |
 | `./src/api_server.py` | `7f8b337d3d8b5346e3d7f0b4946aca93e73ebb54abc7087f9fe38486dc5eab47` |
 | `./src/consistency_check.py` | `cf9787a95bda8369368388c67a4008b3832a0fb968f39876ad857ae4bf9439e9` |
 | `./src/delivery_package.json` | `72845ef4d6c424c9af33aedcd3e793cfb7d72990665573c93ce00b2e9096e74f` |
 | `./src/evolution.py` | `6e2213d74646ca9a37a0415563a7b967c530e570ae55cced91912a7df3a83761` |
-| `./src/experts.py` | `f65682c8ec3deb34037877c325aaba3db63dd7ce8dee8b4afbb255654276c08d` |
-| `./src/homology.py` | `9832ab6c16964be9659ec64b8c9b1b015b23855fff52c828bac3ead839d42731` |
-| `./src/llm_gateway.py` | `7e3f92fadb47a549cfe59e43cbc7b84914749f411e9fba0cf0293b970b462f98` |
+| `./src/experts.py` | `2a8cb497adfcad62b321d1df3e15ae710728bc14f949ab75aae74603e76d7c77` |
+| `./src/homology.py` | `bfba0a2fd185cf919bcd5d769abc28b03ad9bf28c7858c43b7a70548dc616806` |
+| `./src/llm_gateway.py` | `34546c345ed2c7023f88f6229a4d1fcf95a1b9970fb4b33590b5468b38af45f0` |
 | `./src/main.py` | `0ba2801cd537c9fc8e95df16891bc4ef67ddda46938dd1848e7751f6f7f16d64` |
 | `./src/matrix_store.py` | `bbfc0bf876a8bf5dd59ad7bb2db946c2496faa0f13637ed7f5ad5130b7bd3271` |
 | `./src/observability.py` | `22e64a6d04e07d227ed5822e705cdfccf4ca30c183b70d1950078707c976cbe7` |
 | `./src/paradigms.py` | `d9269e7af5aa6950295d234f3c7bc7eb21edc296f730677c195e06775a58e99a` |
 | `./src/plugin_runtime.py` | `0b8b5d7f2f7006a40602b87df76a835d675f61874d6163bbfe14b69289d419c3` |
-| `./src/plugins/__pycache__/step_s1_llm.cpython-313.pyc` | `c627d3056b817ae7d7537558845ea3703eb72df3edfbf689068e910b62918dd2` |
 | `./src/plugins/step_s1_llm.py` | `a7e3d781e8831c56c39428cb66c6e4d2c3eb32e471ed38d0cac51856a3936982` |
 | `./src/requirements.txt` | `913c872d36f7860de7f4a0a6d2ea5c798ff56bc9113e11fe779fcc97ae9d52be` |
 | `./src/self_optimize.py` | `d299a760b4a3863321d728efc7aba8801616d68e4077e7fa257831712be52222` |

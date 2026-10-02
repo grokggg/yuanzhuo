@@ -39,7 +39,7 @@ class LLMGateway:
     第20项优化：结果缓存（同 prompt 命中免重复调用,降延迟省配额）。
     """
 
-    def __init__(self, timeout: int = _LLM_TIMEOUT, use_cache: bool = True):
+    def __init__(self, timeout: int = _LLM_TIMEOUT, use_cache: bool = True) -> None:
         self.timeout = timeout
         self.channels = [dict(c) for c in _MODEL_CHANNELS]
         self.use_cache = use_cache

@@ -160,7 +160,7 @@ EXPERT_PROMPT_TEMPLATE = """你是{discipline}领域的专家「{name}」，正�
 class ExpertPanel:
     """42 位专家圆桌（真实 LLM 独立推演 + 收敛）。"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.experts = EXPERTS
         self.by_id = {e["id"]: e for e in EXPERTS}
 
