@@ -40,6 +40,19 @@ from typing import Any, Callable, Optional
 # 0. 常量与配置（概念层，不编造数字）
 # ---------------------------------------------------------------------------
 
+# ---- 第6项优化：矩阵持久化（SQLite，零共享资源铁律）----
+# 默认内存 dict（概念行为）；设置 UHES_MATRIX_DB 环境变量启用 SQLite 持久化。
+import matrix_store as _matrix_store
+
+_MATRIX_DB_PATH = os.environ.get("UHES_MATRIX_DB", "").strip()
+_matrix_persist = None
+if _MATRIX_DB_PATH:
+    try:
+        _matrix_persist = _matrix_store.MatrixStore(_MATRIX_DB_PATH)
+    except Exception as _me:
+        print(f"[UHES] 警告: 矩阵持久化初始化失败({_me})，回退内存模式", file=sys.stderr)
+        _matrix_persist = None
+
 PERMANENT_LAYER = [
     "01_requirement_dna_report",
     "02_composite_paradigm_spec",
@@ -2123,8 +2136,27 @@ _MATRIX_STORE: dict[str, dict[str, Any]] = {
 
 
 def matrix_load_system(system_id: str) -> Optional[dict[str, Any]]:
-    """阶段4：从系统关系矩阵读取已归档系统（S8 登记产物）。"""
+    """阶段4：从系统关系矩阵读取已归档系统（S8 登记产物）。
+
+    第6项优化：设置 UHES_MATRIX_DB 时走 SQLite 持久化读取（跨运行加载），
+    否则回退内存 dict（概念行为）。
+    """
+    if _matrix_persist is not None:
+        rec = _matrix_persist.load(system_id)
+        if rec is not None:
+            return rec
+        # 持久化未命中时回退内存（初始种子数据）
     return _MATRIX_STORE.get(system_id)
+
+
+def matrix_register(record: dict[str, Any]) -> None:
+    """第6项优化：系统矩阵登记（SQLite 持久化，跨运行保存）。
+
+    设置 UHES_MATRIX_DB 时写入持久化 DB + 内存同步；否则仅内存。
+    """
+    if _matrix_persist is not None:
+        _matrix_persist.register(record)
+    _MATRIX_STORE[record.get("system_id", "")] = record
 
 
 def wrap_legacy_system(legacy: dict[str, Any]) -> dict[str, Any]:
@@ -2289,7 +2321,7 @@ def _test_phase4() -> int:
     passed = passed and h_ok
 
     # 概念验证：有效进化写入矩阵，生成 sys_lit_review_002，evolves_from 溯源
-    _MATRIX_STORE["sys_lit_review_002"] = {
+    matrix_register({
         "system_id": "sys_lit_review_002",
         "name": "跨语言文献综述辅助系统 v2",
         "domain": "学术研究",
@@ -2300,7 +2332,7 @@ def _test_phase4() -> int:
         "version": "002",
         "evolves_from": "sys_lit_review_001",  # 溯源边
         "versions": legacy_h["versions"] + ["sys_lit_review_002"],
-    }
+    })
     v2 = _MATRIX_STORE["sys_lit_review_002"]
     h2_ok = v2["evolves_from"] == "sys_lit_review_001" and v2["version"] == "002"
     print(f"[TEST-P4] H evolves_from 溯源: {'✓' if h2_ok else '✗'} "
@@ -2347,7 +2379,7 @@ def _test_phase4() -> int:
         if evaluate_evolution_value(legacy_j, new_dna_j)["verdict"] != "valid_evolution":
             break  # 不再有效进化，递归自然终止
         new_id = f"sys_lit_review_{depth+3:03d}"
-        _MATRIX_STORE[new_id] = {
+        matrix_register({
             "system_id": new_id, "name": f"v{depth+3}",
             "domain": "学术研究",
             "paradigm_tags": new_dna_j["_iteration_paradigm_tags"],
@@ -2357,7 +2389,7 @@ def _test_phase4() -> int:
             "version": f"{depth+3:03d}",
             "evolves_from": current_id,
             "versions": legacy_j["versions"] + [new_id],
-        }
+        })
         current_id = new_id
         depth += 1
     j_ok = reached_limit
