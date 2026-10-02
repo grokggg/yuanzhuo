@@ -1,8 +1,8 @@
 {
   "package_meta": {
-    "run_id": "run_knowledge_demo",
+    "run_id": "run_lit_review_demo",
     "package_version": "1.0",
-    "generated_at": "2026-10-02T07:43:27+00:00",
+    "generated_at": "2026-10-02T08:22:55+00:00",
     "final_status": "completed",
     "degradation_records": [],
     "paradigm_catalog_version": "29组初始版",
@@ -279,7 +279,7 @@
           },
           "llm": {
             "llm_verdict": "approve",
-            "llm_reason": "两范式机制通过机制迁移和信息论约束实现同构，合并公理自洽，且共同推论有效，因此设计合理。",
+            "llm_reason": "The proposed hybrid paradigm effectively combines linguistic and information theory principles to address the complexity of cross-lingual academic literature review, with coherent and non-contradictory axioms.",
             "available": true
           },
           "decision": "hybrid_approved"
@@ -288,7 +288,7 @@
     },
     "03_system_blueprint": {
       "system_identity": {
-        "proposed_name": "Academic Literature Synthesis Assistant",
+        "proposed_name": "Cross-Lingual Academic Literature Synthesis Assistant",
         "domain": "通用",
         "paradigm_tags": [
           "语言学范式",
@@ -303,42 +303,42 @@
         "module_list": [
           {
             "module_id": "M1",
-            "module_name": "Language Detection and Translation",
+            "module_name": "Language Detection and Preprocessing",
             "state": "core|optional"
           },
           {
             "module_id": "M2",
-            "module_name": "Text Preprocessing",
+            "module_name": "Text Extraction and Parsing",
             "state": "core|optional"
           },
           {
             "module_id": "M3",
-            "module_name": "Information Extraction",
+            "module_name": "Translation and Interlingual Analysis",
             "state": "core|optional"
           },
           {
             "module_id": "M4",
-            "module_name": "Citation Analysis",
+            "module_name": "Core Conclusion Identification",
             "state": "core|optional"
           },
           {
             "module_id": "M5",
-            "module_name": "Conclusion Synthesis",
+            "module_name": "Data Synthesis and Structuring",
             "state": "core|optional"
           },
           {
             "module_id": "M6",
-            "module_name": "Structural Formatting",
-            "state": "core|optional"
+            "module_name": "Citation and Reference Management",
+            "state": "optional"
           },
           {
             "module_id": "M7",
-            "module_name": "User Interface",
-            "state": "core|optional"
+            "module_name": "User Interface and Interaction",
+            "state": "optional"
           },
           {
             "module_id": "M8",
-            "module_name": "Feedback Loop",
+            "module_name": "System Monitoring and Analytics",
             "state": "optional"
           }
         ],
@@ -346,60 +346,57 @@
           {
             "from_module": "M1",
             "to_module": "M2",
-            "data_entity": "Translated Text",
+            "data_entity": "Preprocessed Text",
             "direction": "forward"
           },
           {
             "from_module": "M2",
             "to_module": "M3",
-            "data_entity": "Processed Text",
+            "data_entity": "Extracted Text",
             "direction": "forward"
           },
           {
             "from_module": "M3",
             "to_module": "M4",
-            "data_entity": "Extracted Information",
+            "data_entity": "Translated Text",
             "direction": "forward"
           },
           {
             "from_module": "M4",
             "to_module": "M5",
-            "data_entity": "Citation Data",
+            "data_entity": "Identified Conclusions",
             "direction": "forward"
           },
           {
             "from_module": "M5",
             "to_module": "M6",
-            "data_entity": "Synthesized Conclusions",
+            "data_entity": "Structured Data",
             "direction": "forward"
           },
           {
             "from_module": "M6",
             "to_module": "M7",
-            "data_entity": "Formatted Synthesis",
+            "data_entity": "Citations and References",
             "direction": "forward"
           },
           {
             "from_module": "M7",
             "to_module": "M8",
-            "data_entity": "User Feedback",
-            "direction": "feedback"
+            "data_entity": "User Interaction Data",
+            "direction": "forward"
           },
           {
             "from_module": "M8",
             "to_module": "M1",
-            "data_entity": "Updated Translation Parameters",
+            "data_entity": "System Performance Metrics",
             "direction": "feedback"
           }
         ],
         "plugin_contracts": [
           "TranslationPluginContract",
-          "TextPreprocessingPluginContract",
-          "InformationExtractionPluginContract",
-          "CitationAnalysisPluginContract",
-          "ConclusionSynthesisPluginContract",
-          "StructuralFormattingPluginContract",
-          "UserInterfacePluginContract"
+          "TextAnalysisPluginContract",
+          "DataSynthesisPluginContract",
+          "ReferenceManagementPluginContract"
         ],
         "trigger_conditions": [
           "用户提交需求",
@@ -421,18 +418,18 @@
       "open_issues": [
         {
           "issue": "Inconsistent translation quality across different languages",
-          "impact": "May lead to inaccuracies in information extraction",
+          "impact": "May lead to inaccuracies in conclusion extraction",
           "suggested_resolution": "Implement a multi-lingual quality assessment framework"
         },
         {
-          "issue": "Limited coverage of citation sources",
-          "impact": "May miss important references",
-          "suggested_resolution": "Expand the citation database and incorporate more sources"
+          "issue": "Difficulty in identifying core conclusions due to complex text structures",
+          "impact": "May result in incomplete or misleading syntheses",
+          "suggested_resolution": "Develop advanced NLP techniques for better conclusion identification"
         },
         {
-          "issue": "User interface complexity",
-          "impact": "May hinder user adoption",
-          "suggested_resolution": "Simplify the user interface design and provide comprehensive documentation"
+          "issue": "Limited user interaction features for feedback and customization",
+          "impact": "May hinder the effectiveness of the system",
+          "suggested_resolution": "Enhance the user interface with interactive elements for better user engagement"
         }
       ],
       "_llm_note": "LLM 生成蓝图(模块8个)"
@@ -570,91 +567,111 @@
         {
           "dimension": "需求覆盖度",
           "grade": "A",
-          "evidence": "覆盖主目标与3项次要目标;缺口:验收标准未挂钩M6标注机制",
-          "issues_found": [
-            "验收标准未挂钩M6标注机制"
-          ]
+          "evidence": "系统能够处理四语文献池，提取核心结论并生成结构化综述，满足构建跨语言学术文献综述辅助系统的基本需求。",
+          "issues_found": []
         },
         {
           "dimension": "约束合规度",
-          "grade": "S",
-          "evidence": "可溯源/不臆测/四语/无持久化均满足",
-          "issues_found": []
+          "grade": "B",
+          "evidence": "系统设计考虑了多语言处理，但未明确提及对特定格式或标准的遵守情况。",
+          "issues_found": [
+            "未明确提及对特定格式或标准的遵守情况"
+          ]
         },
         {
           "dimension": "架构完整性",
           "grade": "A",
-          "evidence": "M1-M7数据流闭环,M8为可选反馈环",
-          "issues_found": [
-            "M8交叉对照无对接细节"
-          ]
+          "evidence": "系统设计包含从语言检测到用户交互的完整流程，架构完整。",
+          "issues_found": []
         },
         {
           "dimension": "非侵入合规度",
-          "grade": "S",
-          "evidence": "compliance_declaration 五规则全过",
-          "issues_found": []
+          "grade": "C",
+          "evidence": "系统设计中的某些模块（如翻译和跨语言分析）可能对原始文本结构有较大影响，存在侵入性。",
+          "issues_found": [
+            "翻译和跨语言分析可能对原始文本结构有较大影响"
+          ]
         },
         {
           "dimension": "可落地性",
           "grade": "B",
-          "evidence": "核心链路概念清晰;日语切分语料不足(open_issue#1)拖低此维度",
+          "evidence": "系统设计考虑了数据合成和结构化，但未详细说明如何处理大规模数据集或实时数据流。",
           "issues_found": [
-            "open_issue#1:日语语料标注"
+            "未详细说明如何处理大规模数据集或实时数据流"
           ]
         },
         {
           "dimension": "可验证性",
-          "grade": "S",
-          "evidence": "每条证据带原文锚点,可独立复核",
-          "issues_found": []
+          "grade": "C",
+          "evidence": "系统设计中的核心结论识别和结构化部分可能难以验证，因为涉及主观判断。",
+          "issues_found": [
+            "核心结论识别和结构化部分可能难以验证"
+          ]
         },
         {
           "dimension": "可扩展性",
-          "grade": "A",
-          "evidence": "M8预留交叉对照接口;范式标签支持矩阵检索",
-          "issues_found": []
+          "grade": "B",
+          "evidence": "系统设计考虑了模块化，但未明确说明如何轻松添加新语言或处理新类型的数据。",
+          "issues_found": [
+            "未明确说明如何轻松添加新语言或处理新类型的数据"
+          ]
         },
         {
           "dimension": "风险可控性",
-          "grade": "B",
-          "evidence": "2个high风险均有缓解机制:翻译损耗→M5冗余校验+不确定性标注;断章取义→语义单元锚定;术语对齐错误→M3歧义标记",
+          "grade": "C",
+          "evidence": "系统设计中存在翻译质量不一致和核心结论识别困难的风险，需要进一步的风险管理。",
           "issues_found": [
-            "术语对齐错误缓解依赖M3歧义标记规则,规则未量化(open_issue#2关联)"
+            "翻译质量不一致；核心结论识别困难"
           ]
         }
       ],
       "defect_list": [
         {
-          "defect_id": "D01",
-          "severity": "major",
-          "location": "M6/验收标准",
-          "description": "不确定性标注机制未进入验收标准",
-          "fix_suggestion": "验收标准增加'综述必须含不确定性标注'条目",
+          "defect_id": "LLMJ-D01",
+          "severity": "minor",
+          "location": "约束合规度",
+          "description": "未明确提及对特定格式或标准的遵守情况",
+          "fix_suggestion": "LLM judge 提出,孵化阶段评估",
           "status": "open"
         },
         {
-          "defect_id": "D02",
+          "defect_id": "LLMJ-D02",
           "severity": "minor",
-          "location": "M8",
-          "description": "交叉对照无矩阵内可用系统对接细节",
-          "fix_suggestion": "阶段2补齐,阶段1按optional关闭",
+          "location": "非侵入合规度",
+          "description": "翻译和跨语言分析可能对原始文本结构有较大影响",
+          "fix_suggestion": "LLM judge 提出,孵化阶段评估",
           "status": "open"
         },
         {
-          "defect_id": "D03",
+          "defect_id": "LLMJ-D03",
           "severity": "minor",
-          "location": "M5",
-          "description": "冗余校验的独立锚点判定标准未量化",
-          "fix_suggestion": "孵化阶段1用启发式规则,阶段2升级",
+          "location": "可落地性",
+          "description": "未详细说明如何处理大规模数据集或实时数据流",
+          "fix_suggestion": "LLM judge 提出,孵化阶段评估",
           "status": "open"
         },
         {
-          "defect_id": "D04",
+          "defect_id": "LLMJ-D04",
           "severity": "minor",
-          "location": "M2",
-          "description": "日语语义单元切分语料标注不足",
-          "fix_suggestion": "阶段2补充日语文法规则集",
+          "location": "可验证性",
+          "description": "核心结论识别和结构化部分可能难以验证",
+          "fix_suggestion": "LLM judge 提出,孵化阶段评估",
+          "status": "open"
+        },
+        {
+          "defect_id": "LLMJ-D05",
+          "severity": "minor",
+          "location": "可扩展性",
+          "description": "未明确说明如何轻松添加新语言或处理新类型的数据",
+          "fix_suggestion": "LLM judge 提出,孵化阶段评估",
+          "status": "open"
+        },
+        {
+          "defect_id": "LLMJ-D06",
+          "severity": "minor",
+          "location": "风险可控性",
+          "description": "翻译质量不一致；核心结论识别困难",
+          "fix_suggestion": "LLM judge 提出,孵化阶段评估",
           "status": "open"
         },
         {
@@ -669,16 +686,16 @@
           "defect_id": "LLM-D02",
           "severity": "minor",
           "location": "LLM蓝图",
-          "description": "Limited coverage of citation sources",
-          "fix_suggestion": "Expand the citation database and incorporate more sources",
+          "description": "Difficulty in identifying core conclusions due to complex text structures",
+          "fix_suggestion": "Develop advanced NLP techniques for better conclusion identification",
           "status": "open"
         },
         {
           "defect_id": "LLM-D03",
           "severity": "minor",
           "location": "LLM蓝图",
-          "description": "User interface complexity",
-          "fix_suggestion": "Simplify the user interface design and provide comprehensive documentation",
+          "description": "Limited user interaction features for feedback and customization",
+          "fix_suggestion": "Enhance the user interface with interactive elements for better user engagement",
           "status": "open"
         }
       ],
@@ -687,13 +704,14 @@
         "critical_defects": 0,
         "rollback_count": 0,
         "delivered_with_defects": false,
-        "note": "2 major以下缺陷,无critical"
+        "note": "LLM judge 评估,无critical"
       },
       "open_issue_refs": [
         "Inconsistent translation quality across different languages",
-        "Limited coverage of citation sources",
-        "User interface complexity"
+        "Difficulty in identifying core conclusions due to complex text structures",
+        "Limited user interaction features for feedback and customization"
       ],
+      "_judge_note": "LLM judge 评估(覆盖8/8维度)",
       "cross_validation": {
         "executed": true,
         "systems_compared": [
@@ -844,33 +862,33 @@
         },
         {
           "artifact_id": "02",
-          "hash": "55a79d65549cc6f2",
+          "hash": "d48f6a48ea53c713",
           "prev_hash": "6452c4a115fa7441"
         },
         {
           "artifact_id": "03",
-          "hash": "0cbde9e4ae59aea7",
-          "prev_hash": "55a79d65549cc6f2"
+          "hash": "06f8bfca8234b8ef",
+          "prev_hash": "d48f6a48ea53c713"
         },
         {
           "artifact_id": "04",
-          "hash": "e4c117ae41e06a38",
-          "prev_hash": "0cbde9e4ae59aea7"
+          "hash": "d2741cdf8ab7c56d",
+          "prev_hash": "06f8bfca8234b8ef"
         },
         {
           "artifact_id": "05",
-          "hash": "0087cc28fa54ea95",
-          "prev_hash": "e4c117ae41e06a38"
+          "hash": "9b8634377d73f253",
+          "prev_hash": "d2741cdf8ab7c56d"
         },
         {
           "artifact_id": "06",
-          "hash": "9a7ae0575f09d48d",
-          "prev_hash": "0087cc28fa54ea95"
+          "hash": "77baffa36f31d032",
+          "prev_hash": "9b8634377d73f253"
         },
         {
           "artifact_id": "07",
-          "hash": "d496133ce9679a84",
-          "prev_hash": "9a7ae0575f09d48d"
+          "hash": "e2646350c2f67fe2",
+          "prev_hash": "77baffa36f31d032"
         }
       ],
       "chain_integrity": true,

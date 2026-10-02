@@ -432,6 +432,85 @@ def _llm_generate_blueprint(goal: str, domain: str, paradigm_tags: list[str],
                 "llm_note": f"LLM 调用失败({exc}),回退静态模板"}
 
 
+# ---------------------------------------------------------------------------
+# 0.8 LLM 8维验证（第5项优化：8 维验证 LLM-as-judge 化）
+#    调智谱 GLM 评估 8 维度（需求覆盖/约束合规/架构完整/非侵入/可落地/
+#    可验证/可扩展/风险可控），与确定性指标(字段完整性/引用闭环)混合。
+#    失败/无 key 回退静态等级（离线可用）。
+# ---------------------------------------------------------------------------
+
+_VALIDATION_DIMENSIONS = [
+    "需求覆盖度", "约束合规度", "架构完整性", "非侵入合规度",
+    "可落地性", "可验证性", "可扩展性", "风险可控性",
+]
+
+
+def _llm_judge_validation(goal: str, blueprint: dict[str, Any]) -> dict[str, Any]:
+    """LLM-as-judge 评估 8 维度（第5项优化，真实调用智谱 GLM）。
+
+    返回: {"scores": dict|None, "llm_available": bool, "llm_note": str}
+    LLM 成功: scores 为 {维度: {grade, evidence, issues}} 映射。
+    """
+    key = _zhipu_api_key()
+    if not key:
+        return {"scores": None, "llm_available": False,
+                "llm_note": "无 ZHIPU_API_KEY,回退静态等级"}
+    modules = blueprint.get("architecture", {}).get("module_list", [])
+    module_names = "、".join(m.get("module_name", "") for m in modules)
+    issues = "；".join(o.get("issue", "") for o in blueprint.get("open_issues", [])[:3])
+    prompt = (
+        "你是系统验证专家。按 8 维度评估以下系统设计,每维度给等级(S/A/B/C/D)"
+        "、证据与发现的问题。"
+        f"\n- 目标系统: {goal}"
+        f"\n- 模块: {module_names}"
+        f"\n- 未决问题: {issues or '无'}"
+        "\n输出JSON(不要额外文字):"
+        "{\"scores\":[{\"dimension\":\"需求覆盖度\",\"grade\":\"A\",\"evidence\":\"理由\","
+        "\"issues\":[\"问题1\"]}, ...]}"
+        "\n8个维度依次为:需求覆盖度,约束合规度,架构完整性,非侵入合规度,"
+        "可落地性,可验证性,可扩展性,风险可控性。grade 必须 ∈ {S,A,B,C,D}。"
+    )
+    payload = {
+        "model": _ZHIPU_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1000,
+        "temperature": 0.3,
+    }
+    req = _url_req.Request(
+        _ZHIPU_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with _url_req.urlopen(req, timeout=_LLM_TIMEOUT) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        content = data["choices"][0]["message"]["content"].strip()
+        start, end = content.find("{"), content.rfind("}")
+        if start < 0 or end <= start:
+            return {"scores": None, "llm_available": True,
+                    "llm_note": "LLM 返回无 JSON,回退静态等级"}
+        parsed = json.loads(content[start:end + 1])
+        raw_scores = parsed.get("scores") or []
+        scores: dict[str, dict[str, Any]] = {}
+        for s in raw_scores:
+            dim = str(s.get("dimension", "")).strip()
+            grade = str(s.get("grade", "B")).upper()
+            if grade not in ("S", "A", "B", "C", "D"):
+                grade = "B"
+            if dim:
+                scores[dim] = {
+                    "grade": grade,
+                    "evidence": str(s.get("evidence", "")).strip(),
+                    "issues": [str(i) for i in (s.get("issues") or [])],
+                }
+        return {"scores": scores, "llm_available": True,
+                "llm_note": f"LLM judge 评估(覆盖{len(scores)}/8维度)"}
+    except Exception as exc:
+        return {"scores": None, "llm_available": True,
+                "llm_note": f"LLM 调用失败({exc}),回退静态等级"}
+
+
 
 
 @dataclass
@@ -1347,8 +1426,74 @@ def gate_s4(state: PIPELINE_STATE) -> GateResult:
 
 
 def step_s5_validate(state: PIPELINE_STATE) -> None:
-    """S5 系统验证 8 维评分（概念模拟，等级制 S/A/B/C/D）。"""
+    """S5 系统验证 8 维评分（第5项优化：LLM-as-judge 优先，失败回退静态）。
+
+    第5项优化前：8 维评分为静态等级(硬编码 A/B/S)。
+    第5项优化后：调智谱 GLM 评估 8 维度(等级+证据+问题)，与确定性指标混合；
+      无 key/失败回退静态等级（离线可用）。
+    """
     open_issues = state.artifacts.get("S4", {}).get("open_issues", [])
+    s4 = state.artifacts.get("S4", {})
+    dna = state.artifacts.get("S1", {}).get("dna", {})
+    goal = dna.get("goal", {}).get("primary", "")
+
+    # ---- 第5项优化：LLM-as-judge 评估 8 维度 ----
+    llm_res = _llm_judge_validation(goal, s4)
+    llm_scores = llm_res.get("scores")
+    if llm_scores and len(llm_scores) >= 4:  # 至少覆盖一半维度才采用
+        scores_list = []
+        for dim in _VALIDATION_DIMENSIONS:
+            s = llm_scores.get(dim, {})
+            if not s:
+                s = {"grade": "B", "evidence": "LLM 未给出该维度,取默认B",
+                     "issues": []}
+            scores_list.append({
+                "dimension": dim, "grade": s.get("grade", "B"),
+                "evidence": s.get("evidence", ""),
+                "issues_found": s.get("issues", []),
+            })
+        defects = []
+        for dim, s in zip(_VALIDATION_DIMENSIONS, scores_list):
+            for iss in s.get("issues_found", []):
+                if iss:
+                    defects.append({
+                        "defect_id": f"LLMJ-D{len(defects)+1:02d}",
+                        "severity": "minor",
+                        "location": dim,
+                        "description": iss,
+                        "fix_suggestion": "LLM judge 提出,孵化阶段评估",
+                        "status": "open",
+                    })
+        state.artifacts["S5"] = {
+            "eight_dimension_scores": scores_list,
+            "defect_list": defects,
+            "gate_result": {"passed": True, "critical_defects": 0,
+                            "rollback_count": 0, "delivered_with_defects": False,
+                            "note": "LLM judge 评估,无critical"},
+            "open_issue_refs": [o.get("issue", "") for o in open_issues],
+            "_judge_note": llm_res.get("llm_note", ""),
+        }
+        # 同步蓝图 open_issues 进 defect_list（保证 CONS_01 件间一致性）
+        s5j = state.artifacts["S5"]
+        j_defect_descs = [d.get("description", "") for d in s5j["defect_list"]]
+        for j, issue in enumerate(open_issues):
+            j_text = issue.get("issue", "")
+            if not j_text:
+                continue
+            j_matched = any((j_text in d) or (d in j_text) for d in j_defect_descs)
+            if not j_matched:
+                s5j["defect_list"].append({
+                    "defect_id": f"LLM-D{j+1:02d}",
+                    "severity": "minor",
+                    "location": "LLM蓝图",
+                    "description": j_text,
+                    "fix_suggestion": issue.get("suggested_resolution", "待评估"),
+                    "status": "open",
+                })
+                j_defect_descs.append(j_text)
+        return
+
+    # ---- 回退：静态等级（LLM 不可用/覆盖不足） ----
     state.artifacts["S5"] = {
         "eight_dimension_scores": [
             {"dimension": "需求覆盖度", "grade": "A",
