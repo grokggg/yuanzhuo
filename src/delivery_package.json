@@ -2,7 +2,7 @@
   "package_meta": {
     "run_id": "run_lit_review_demo",
     "package_version": "1.0",
-    "generated_at": "2026-10-01T21:42:56+00:00",
+    "generated_at": "2026-10-02T02:38:30+00:00",
     "final_status": "completed",
     "degradation_records": [],
     "paradigm_catalog_version": "29组初始版",
@@ -154,6 +154,29 @@
         ],
         "clarification_rounds": 0,
         "degraded_flags": []
+      },
+      "phase2": {
+        "clarify_template": {
+          "questions": [
+            {
+              "q": "您希望系统解决什么核心问题？",
+              "target": "goal.primary"
+            },
+            {
+              "q": "有哪些不可违反的约束？",
+              "target": "constraints"
+            },
+            {
+              "q": "成功的标准是什么？",
+              "target": "goal.success_criteria"
+            }
+          ],
+          "triggered_by_ambiguities": [
+            "术语对齐的精度标准未定义",
+            "语料规模上限未定义"
+          ]
+        },
+        "text_strategy": null
       }
     },
     "02_composite_paradigm_spec": {
@@ -372,7 +395,11 @@
           "科研方法论",
           "复杂系统"
         ],
-        "expert_count": 4
+        "expert_count": 4,
+        "phase2": {
+          "mode": "on_demand",
+          "note": "阶段2按需圆桌：match_confidence=low 时触发（01记忆匣阶段2能力）"
+        }
       },
       "findings": {
         "consensus_list": [
@@ -589,7 +616,21 @@
       "open_issue_refs": [
         "日语语义单元切分语料标注不足",
         "冗余校验的独立锚点判定标准未量化"
-      ]
+      ],
+      "cross_validation": {
+        "executed": true,
+        "systems_compared": [
+          "sys_narrative_spectrum_001",
+          "sys_active_inference_001"
+        ],
+        "consistency": "medium",
+        "confidence": "medium",
+        "discrepancies": [
+          "冗余锚定 vs 预测误差最小化（机制分歧，非根本性矛盾）"
+        ],
+        "skip_reason": null,
+        "phase2_mode": "normalized"
+      }
     },
     "07_incubation_plan": {
       "success_criteria_mapping": {
@@ -721,38 +762,38 @@
       "chain": [
         {
           "artifact_id": "01",
-          "hash": "603164565cd8145f",
+          "hash": "6452c4a115fa7441",
           "prev_hash": null
         },
         {
           "artifact_id": "02",
-          "hash": "bbc9b0c2467f6ed5",
-          "prev_hash": "603164565cd8145f"
+          "hash": "7b851a3d0b7d7429",
+          "prev_hash": "6452c4a115fa7441"
         },
         {
           "artifact_id": "03",
-          "hash": "1d0c853b0e0cb1af",
-          "prev_hash": "bbc9b0c2467f6ed5"
+          "hash": "0d42e7e408c6c3f7",
+          "prev_hash": "7b851a3d0b7d7429"
         },
         {
           "artifact_id": "04",
-          "hash": "95781421aaeb91f2",
-          "prev_hash": "1d0c853b0e0cb1af"
+          "hash": "2030035269709ba2",
+          "prev_hash": "0d42e7e408c6c3f7"
         },
         {
           "artifact_id": "05",
-          "hash": "6c33bfbff69e9b32",
-          "prev_hash": "95781421aaeb91f2"
+          "hash": "8c1784d0f7107681",
+          "prev_hash": "2030035269709ba2"
         },
         {
           "artifact_id": "06",
-          "hash": "e6060018dea32a36",
-          "prev_hash": "6c33bfbff69e9b32"
+          "hash": "113a5b06a1901372",
+          "prev_hash": "8c1784d0f7107681"
         },
         {
           "artifact_id": "07",
-          "hash": "94bba4dd441ca1fe",
-          "prev_hash": "e6060018dea32a36"
+          "hash": "1cbef8753dc2e0a8",
+          "prev_hash": "113a5b06a1901372"
         }
       ],
       "chain_integrity": true,

@@ -18,6 +18,7 @@
 cd src
 python3 main.py                # 跑通内置演示案例（跨语言文献综述辅助系统）
 python3 main.py --out demo.json  # 自定义交付包输出路径
+python3 main.py --test phase2    # 阶段2能力验证（主动澄清/常态化交叉验证/终止输出）
 ```
 
 ## 骨架验证了什么（概念层）
@@ -28,6 +29,12 @@ python3 main.py --out demo.json  # 自定义交付包输出路径
 4. **全局最短路径**：degradation + rollback 合计 ≥3 → 跳过可选步骤（圆桌/交叉验证）。
 5. **交付包完整性**：7件齐全 / 必填字段（点路径）/ 引用闭环 / CONS_01 件间一致性 / sha256 快照哈希链（UTF-8 NFC+LF 规范化）。
 6. **非侵入概念映射**：状态机引擎为"冻结骨架"，8 步 handler 经 `register()` 以插件侧车注入。
+7. **阶段2能力（01 记忆匣阶段2【能力补齐】）**：
+   - 主动澄清（P2-A1）：S1 歧义超阈值输出三问澄清模板，不再静默降级。
+   - 交叉验证常态化：矩阵有 ≥2 相关系统即执行 S6，并入 06 件 cross_validation。
+   - 按需圆桌：match_confidence=low 时也触发 S2.5。
+   - 长文本策略（P2-A3）：超长输入声明三段式处理。
+   - 终止输出（P2-B4）：waiting_user 状态输出 原始输入+DNA草稿+终止确认。
 
 ## 与设计文档的对应
 
@@ -37,3 +44,4 @@ python3 main.py --out demo.json  # 自定义交付包输出路径
 | `PIPELINE_STATE` | docs/10 4.1 节 |
 | `IntegrityChecker` | docs/10 5.5 节（含 P0 修复 C4、P1 修复 C3） |
 | `demo_input()` 案例 | docs/11（跨语言文献综述辅助系统） |
+| `_test_phase2()` | docs/10 阶段2定义 + docs/11（阶段2能力推演） |

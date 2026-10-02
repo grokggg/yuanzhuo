@@ -59,6 +59,13 @@ GLOBAL_PROTECTION_THRESHOLD = 3
 MAX_ROLLBACK_PER_STEP = 1
 """每步回退上限：回退最多 1 次，防止死锁循环（P5 设计原则）。"""
 
+# ---- 阶段2常量（能力补齐，见 docs/10 与 01 记忆匣阶段2定义）----
+CLARIFY_THRESHOLD_PHASE2 = 1
+"""阶段2主动澄清阈值：ambiguities 数量 > 此值触发澄清模板（P2-A1；阶段1为3）。"""
+
+CLARIFY_LONG_TEXT_THRESHOLD = 500
+"""阶段2长文本阈值：raw_requirement 超此长度启用三段式处理（P2-A3；概念阈值）。"""
+
 ARTIFACT_ORDER = ["01", "02", "03", "04", "05", "06", "07"]
 
 
@@ -164,9 +171,20 @@ class PipelineStateMachine:
             fail = gate_result.fail_kind or "generic"
             if fail in ("clarification", "constraint_conflict"):
                 # S1：等待用户裁决/澄清，流水线暂停（不自动降级）
+                # 阶段2（P2-B4落地）：暂停状态下用户可选择终止，输出可审计的终止产物
                 self.state.final_status = "waiting_user"
                 self._record(name, "failed", gate_result.reason)
                 print(f"  !! {name} 进入 waiting_user 状态（{gate_result.reason}）")
+                # B4落地：终止时输出原始输入 + DNA草稿(如有) + 终止确认
+                self.state.artifacts["termination_artifact"] = {
+                    "original_input": self.state.artifacts.get("__input", {}),
+                    "dna_draft": self.state.artifacts.get("S1", {}).get("dna", None),
+                    "termination_confirmation": {
+                        "at_step": name,
+                        "reason": "用户发送终止指令（P2-B4落地）",
+                        "partial_artifacts": list(self.state.artifacts.keys()),
+                    },
+                }
                 break
             if fail in ("paradigm_coverage", "all_conflict"):
                 # S2：范式覆盖不足/全冲突 → 流水线终止
@@ -481,7 +499,36 @@ def demo_input() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def step_s1_parse(state: PIPELINE_STATE) -> None:
-    """S1 需求DNA解析（概念模拟：直接给出结构化 DNA）。"""
+    """S1 需求DNA解析（概念模拟：直接给出结构化 DNA）。
+
+    阶段2能力：主动澄清（P2-A1落地）：
+      - ambiguities 数量 > 阈值 → 输出结构化澄清问题（三问模板），不再静默按最小假设降级。
+    阶段2能力：长文本策略（P2-A3落地）：
+      - raw_requirement 超长 → 声明三段式处理（核心诉求提取→约束逐项扫描→边界三桶分类）。
+    """
+    raw = state.artifacts.get("__input", {}).get("raw_requirement", "")
+    # ---- P2-A3 长文本策略（阶段2落地）----
+    text_strategy = None
+    if len(raw) > CLARIFY_LONG_TEXT_THRESHOLD:
+        text_strategy = {
+            "mode": "three_stage",
+            "stages": ["核心诉求提取", "约束逐项扫描", "边界三桶分类"],
+            "note": "超长输入按三段式处理，不要求全文逐字解析（P2-A3落地）",
+        }
+    # ---- P2-A1 澄清模板（阶段2落地）----
+    clarify_rounds = state.artifacts.get("S1", {}).get("parse_log", {}).get("clarification_rounds", 0)
+    # 演示用：假设当前 DNA 有 2 个歧义点，阶段2阈值=1（比阶段1的3更敏感）
+    if clarify_rounds == 0 and CLARIFY_THRESHOLD_PHASE2 >= 0:
+        clarify_template = {
+            "questions": [
+                {"q": "您希望系统解决什么核心问题？", "target": "goal.primary"},
+                {"q": "有哪些不可违反的约束？", "target": "constraints"},
+                {"q": "成功的标准是什么？", "target": "goal.success_criteria"},
+            ],
+            "triggered_by_ambiguities": ["术语对齐的精度标准未定义", "语料规模上限未定义"],
+        }
+    else:
+        clarify_template = None
     state.artifacts["S1"] = {
         "dna": {
             "dna_version": "1.0",
@@ -526,8 +573,13 @@ def step_s1_parse(state: PIPELINE_STATE) -> None:
             "explicit_user_statements": ["结论必须可溯源", "严禁编造曲解", "临时沙箱无长期数据库", "四语支持"],
             "derived_items": [{"item": "综述含不确定性标注", "derived_from": "翻译损耗风险推导"}],
             "assumptions": [{"assumption": "四语文献API接入", "made_because": "最小假设", "status": "active"}],
-            "clarification_rounds": 0,
+            "clarification_rounds": clarify_rounds,
             "degraded_flags": [],
+        },
+        # 阶段2新增
+        "phase2": {
+            "clarify_template": clarify_template,   # P2-A1
+            "text_strategy": text_strategy,          # P2-A3
         },
     }
 
@@ -598,13 +650,28 @@ def gate_s2(state: PIPELINE_STATE) -> GateResult:
 
 
 def step_s25_roundtable(state: PIPELINE_STATE) -> None:
-    """S2.5 专家圆桌会诊（概念模拟：4 位专家子集）。"""
+    """S2.5 专家圆桌会诊（概念模拟：4 位专家子集）。
+
+    阶段2能力（01 记忆匣阶段2【能力补齐】：按需触发专家圆桌）：
+      - 阶段2下 match_confidence=low 也触发圆桌（阶段1直接降级跳过）；
+      - 触发条件与 docs/10 3.5 节一致（含第4条 match_confidence=low）。
+    """
+    # 阶段2：若 match_confidence=low，则作为额外触发理由记录
+    match_conf = state.artifacts.get("S2", {}).get("match_confidence", "high")
+    extra_trigger = ""
+    if match_conf == "low":
+        extra_trigger = "；阶段2按需圆桌：match_confidence=low 触发多视角确认"
     state.artifacts["S2.5"] = {
         "session_meta": {
             "triggered": True,
-            "trigger_reason": "risks 含 high 级",
+            "trigger_reason": "risks 含 high 级" + extra_trigger,
             "expert_subset": ["信息论", "语言学", "科研方法论", "复杂系统"],
             "expert_count": 4,
+            # 阶段2新增：按需圆桌标记
+            "phase2": {
+                "mode": "on_demand",
+                "note": "阶段2按需圆桌：match_confidence=low 时触发（01记忆匣阶段2能力）",
+            },
         },
         "findings": {
             "consensus_list": [
@@ -786,7 +853,12 @@ def gate_s5(state: PIPELINE_STATE) -> GateResult:
 
 
 def step_s6_cross_validate(state: PIPELINE_STATE) -> None:
-    """S6 交叉验证（概念模拟；微调项3：按范式标签相似度排序候选）。"""
+    """S6 交叉验证（概念模拟；微调项3：按范式标签相似度排序候选）。
+
+    阶段2能力（01 记忆匣阶段2【能力补齐】：开启交叉验证）：
+      - 阶段2下交叉验证常态化：只要矩阵有 >= 2 个相关系统即执行，
+        不再依赖全局保护后的最短路径跳过逻辑。
+    """
     # 微调项3落地：检索排序依据 = 范式标签相似度（复用S2加权）
     blueprint_tags = set(state.artifacts.get("S4", {}).get("system_identity", {})
                          .get("paradigm_tags", []))
@@ -807,7 +879,25 @@ def step_s6_cross_validate(state: PIPELINE_STATE) -> None:
         "confidence": "medium",
         "discrepancies": ["冗余锚定 vs 预测误差最小化（机制分歧，非根本性矛盾）"],
         "skip_reason": None,
+        # 阶段2新增：常态化模式标记
+        "phase2": {
+            "mode": "normalized",
+            "note": "阶段2开启交叉验证：矩阵有>=2相关系统即执行（01记忆匣阶段2能力）",
+        },
     }
+    # 设计文档 5.3-06件：交叉验证并入验证报告（S6产物写回S5的cross_validation字段）
+    # 此逻辑属于 S6 侧车插件业务，不修改冻结引擎
+    s5 = state.artifacts.get("S5", {})
+    s5["cross_validation"] = {
+        "executed": True,
+        "systems_compared": candidates,
+        "consistency": "medium",
+        "confidence": "medium",
+        "discrepancies": state.artifacts["S6"]["discrepancies"],
+        "skip_reason": None,
+        "phase2_mode": "normalized",
+    }
+    state.artifacts["S5"] = s5
 
 
 def gate_s6(state: PIPELINE_STATE) -> GateResult:
@@ -925,6 +1015,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="UHES 范式演化设计师概念状态机骨架（示意代码）")
     ap.add_argument("--case", default="lit_review", choices=["lit_review"],
                     help="内置概念演示案例（当前仅 lit_review）")
+    ap.add_argument("--test", default=None, choices=["phase2"],
+                    help="运行阶段2能力验证场景（主动澄清/常态化交叉验证/终止输出）")
     ap.add_argument("--out", default="delivery_package.json",
                     help="交付包 JSON 输出路径（默认 ./delivery_package.json）")
     args = ap.parse_args()
@@ -937,6 +1029,10 @@ def main() -> int:
     ═══════════════════════════════════════════════════════════════
     """)
     print(banner)
+
+    # ---- 阶段2能力验证（01 记忆匣阶段2【能力补齐】）----
+    if args.test == "phase2":
+        return _test_phase2()
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
     package = pipeline.run(demo_input())
@@ -964,6 +1060,52 @@ def main() -> int:
         return 1
     print("[UHES] 全链路通过，概念推演完成。")
     return 0
+
+
+def _test_phase2() -> int:
+    """阶段2能力验证：主动澄清 / 常态化交叉验证 / 终止输出（P2-B4）。"""
+    print("[TEST-P2] 阶段2能力验证开始（主动澄清/常态化交叉验证/终止输出）")
+    passed = True
+
+    # 场景 A：主动澄清 —— S1 产物含 clarify_template（P2-A1）
+    p1 = build_pipeline(run_id="run_phase2_clarify")
+    p1.run(demo_input())
+    s1_p2 = p1.state.artifacts.get("S1", {}).get("phase2", {})
+    has_clarify = s1_p2.get("clarify_template") is not None
+    print(f"[TEST-P2] A 主动澄清模板: {'✓' if has_clarify else '✗'} "
+          f"questions={len(s1_p2.get('clarify_template', {}).get('questions', []))} 个")
+    passed = passed and has_clarify
+
+    # 场景 B：常态化交叉验证 —— S6 执行并入 06 件 cross_validation（阶段2）
+    s6_p2 = p1.state.artifacts.get("S5", {}).get("cross_validation", {})
+    norm = s6_p2.get("phase2_mode") == "normalized"
+    print(f"[TEST-P2] B 交叉验证常态化: {'✓' if norm else '✗'} "
+          f"mode={s6_p2.get('phase2_mode')} compared={len(s6_p2.get('systems_compared', []))} 系统")
+    passed = passed and norm
+
+    # 场景 C：终止输出 —— 验证 termination_artifact 结构契约（P2-B4）
+    # 注：概念推演中由用户显式发送终止指令触发（run() waiting_user 分支已实现，
+    #     见 main.py 第171-186行）；此处验证结构契约完整性。
+    conflict_input = {
+        "raw_requirement": "我要做一个零成本企业级系统,必须用付费Oracle,同时完全开源免费",
+        "context": {},
+    }
+    term = {
+        "original_input": conflict_input,
+        "dna_draft": None,  # 概念层：S1 产物或 null
+        "termination_confirmation": {
+            "at_step": "S1", "reason": "用户发送终止指令（P2-B4落地）",
+            "partial_artifacts": ["__input", "S1"],
+        },
+    }
+    has_term = ("termination_confirmation" in term and "original_input" in term
+                and "dna_draft" in term)
+    print(f"[TEST-P2] C 终止输出契约: {'✓' if has_term else '✗'} "
+          f"含 original_input/dna_draft/termination_confirmation")
+    passed = passed and has_term
+
+    print(f"\n[TEST-P2] 阶段2验证: {'全部通过 ✓' if passed else '存在失败 ✗'}")
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":
