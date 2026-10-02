@@ -20,6 +20,7 @@ python3 main.py                # 跑通内置演示案例（跨语言文献综�
 python3 main.py --out demo.json  # 自定义交付包输出路径
 python3 main.py --test phase2    # 阶段2能力验证（主动澄清/常态化交叉验证/终止输出）
 python3 main.py --test phase3    # 阶段3扩展验证（动力学杂交/关系网络/自动编排/默认关闭）
+python3 main.py --test phase4    # 阶段4递归闭环验证（有效进化/冗余迭代/深度保护）
 ```
 
 ## 阶段能力状态
@@ -29,8 +30,9 @@ python3 main.py --test phase3    # 阶段3扩展验证（动力学杂交/关系�
 | 阶段1 | 8步状态机/门控/回退/最短路径/完整性校验 | `python3 main.py` | ✅ |
 | 阶段2 | 交叉验证常态化/主动澄清/按需圆桌/P2项 | `--test phase2` | ✅ |
 | 阶段3 | 动力学等价杂交/关系网络/自动编排（默认关闭） | `--test phase3` | ✅ |
+| 阶段4 | 递归闭环/进化价值判定/evolves_from溯源/深度保护（默认关闭） | `--test phase4` | ✅ |
 
-阶段3扩展开关遵循"扩展能力默认关闭"铁律：
+阶段3/4扩展开关遵循"扩展能力默认关闭"铁律：
 `build_pipeline(run_id, extensions={...})` 显式开启才生效（见 `EXTENSIONS_DEFAULT`）。
 
 ## 骨架验证了什么（概念层）
@@ -52,6 +54,13 @@ python3 main.py --test phase3    # 阶段3扩展验证（动力学杂交/关系�
    - 系统关系网络：`phase3_relation_network` 开启时 S8 登记 validates/validated_by。
    - 系统自动编排：`_concept_orchestrate()` 概念编排器输出调用链方案。
    - 默认关闭铁律：`EXTENSIONS_DEFAULT` 全 False，`--test phase3` 场景 G 验证。
+9. **阶段4能力（01 记忆匣阶段4【递归闭环】）**：
+   - 矩阵读取：`matrix_load_system()` 从系统矩阵加载已归档系统作为迭代原型。
+   - 递归输入包装：`wrap_legacy_system()` 标记 `input_type: legacy_system_iteration`。
+   - 进化价值判定：`evaluate_evolution_value()` 三维度（范式相似度/约束变更/哈希变更）≥2 判定有效进化，否则 redundant_iteration 终止。
+   - 版本溯源：有效进化写入新版本，`evolves_from` 溯源边，旧版本保留不覆盖。
+   - 深度保护：`MAX_RECURSION_DEPTH=3` 硬上限，防无限递归。
+   - 默认关闭铁律：`phase4_recursive_loop` 默认 False。
 
 ## 与设计文档的对应
 

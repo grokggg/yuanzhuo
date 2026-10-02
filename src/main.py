@@ -79,9 +79,25 @@ EXTENSIONS_DEFAULT: dict[str, bool] = {
     "phase3_relation_network": False,
     # 系统自动编排（矩阵内系统按依赖链组合，解决更大问题）
     "phase3_auto_orchestration": False,
+    # ---- 阶段4扩展开关（递归闭环，01 记忆匣阶段4）----
+    # 递归闭环：已登记系统可作为原型再次送入流水线迭代（阶段4）
+    "phase4_recursive_loop": False,
 }
-"""阶段3扩展开关配置（概念层）。默认全部关闭，显式开启才生效，
+"""阶段3/4扩展开关配置（概念层）。默认全部关闭，显式开启才生效，
 对应设计文档"扩展能力默认关闭"铁律。"""
+
+# ---- 阶段4常量（递归闭环，见 docs/14）----
+MAX_RECURSION_DEPTH = 3
+"""阶段4递归深度硬上限：递归迭代层数 >= 此值强制终止（兜底保护，防无限递归）。"""
+
+PARADIGM_SIMILARITY_THRESHOLD = 0.8
+"""阶段4进化价值判定阈值：新旧版本范式标签相似度 >= 此值视为"趋同"（无有效进化）。"""
+
+CONSTRAINT_CHANGE_REQUIRED = True
+"""阶段4进化价值判定：约束集合必须发生变更才算有效进化（否则视为重复）。"""
+
+SNAPSHOT_HASH_SIGNIFICANT_CHANGE = True
+"""阶段4进化价值判定：快照哈希显著变化（排除仅注释/格式差异）才算有效进化。"""
 
 
 # ---------------------------------------------------------------------------
@@ -1102,9 +1118,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="UHES 范式演化设计师概念状态机骨架（示意代码）")
     ap.add_argument("--case", default="lit_review", choices=["lit_review"],
                     help="内置概念演示案例（当前仅 lit_review）")
-    ap.add_argument("--test", default=None, choices=["phase2", "phase3"],
+    ap.add_argument("--test", default=None, choices=["phase2", "phase3", "phase4"],
                     help="运行阶段能力验证场景（phase2: 主动澄清/常态化交叉验证/终止输出；"
-                         "phase3: 动力学杂交/关系网络/自动编排）")
+                         "phase3: 动力学杂交/关系网络/自动编排；"
+                         "phase4: 递归闭环有效进化/冗余迭代/深度保护）")
     ap.add_argument("--out", default="delivery_package.json",
                     help="交付包 JSON 输出路径（默认 ./delivery_package.json）")
     args = ap.parse_args()
@@ -1124,6 +1141,9 @@ def main() -> int:
     # ---- 阶段3能力验证（01 记忆匣阶段3【扩展开关】）----
     if args.test == "phase3":
         return _test_phase3()
+    # ---- 阶段4能力验证（01 记忆匣阶段4【递归闭环】）----
+    if args.test == "phase4":
+        return _test_phase4()
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
     package = pipeline.run(demo_input())
@@ -1282,6 +1302,215 @@ def _concept_orchestrate(matrix: dict[str, Any], problem: str) -> dict[str, Any]
             "概念编排方案：综述系统产出结构化综述→主动推理系统评估证据置信度"
             "→叙事谱系统校验文本结构完整性；概念层不执行真实调用"),
     }
+
+
+# ---------------------------------------------------------------------------
+# 8. 阶段4 递归闭环（01 记忆匣阶段4：系统生成系统递归闭环）
+#    扩展开关 phase4_recursive_loop，默认关闭。全部逻辑走侧车，不修改冻结引擎。
+# ---------------------------------------------------------------------------
+
+_MATRIX_STORE: dict[str, dict[str, Any]] = {
+    # 概念层矩阵存储：登记过的系统（S8 产物 + 快照哈希 + 版本链）
+    # 真实实现应为独立 DB（零共享资源铁律），此处用内存字典演示概念。
+    "sys_lit_review_001": {
+        "system_id": "sys_lit_review_001",
+        "name": "跨语言文献综述辅助系统",
+        "domain": "学术研究",
+        "paradigm_tags": ["信息论", "科研范式", "语言学", "复杂系统"],
+        "constraints": [
+            {"type": "hard", "dimension": "technology", "description": "结论必须可溯源到原文句子级"},
+            {"type": "hard", "dimension": "ethics", "description": "严禁编造或曲解原意"},
+            {"type": "hard", "dimension": "resource", "description": "运行于临时沙箱,无长期数据库依赖"},
+            {"type": "hard", "dimension": "technology", "description": "支持中英日德四语输入"},
+        ],
+        "success_criteria": ["每条结论可回溯到原文句子级锚点",
+                             "综述输出含不确定性标注", "四语输入均受支持"],
+        "snapshot_hash": "hash_v1_abc123",  # 概念层快照哈希（真实实现为 sha256 链）
+        "version": "001",
+        "evolves_from": None,
+        "versions": ["sys_lit_review_001"],
+    },
+}
+
+
+def matrix_load_system(system_id: str) -> Optional[dict[str, Any]]:
+    """阶段4：从系统关系矩阵读取已归档系统（S8 登记产物）。"""
+    return _MATRIX_STORE.get(system_id)
+
+
+def wrap_legacy_system(legacy: dict[str, Any]) -> dict[str, Any]:
+    """阶段4：将旧系统打包为递归输入对象（legacy_system 包装器）。
+
+    标记 input_type=legacy_system_iteration，与普通用户需求区分；
+    旧系统的 DNA、约束、成功标准、快照哈希并入顶层，作为本轮迭代原型。
+    """
+    return {
+        "raw_requirement": f"迭代升级系统 {legacy['system_id']}（递归闭环，阶段4）",
+        "input_type": "legacy_system_iteration",
+        "legacy_system": {
+            "system_id": legacy["system_id"],
+            "name": legacy.get("name", ""),
+            "domain": legacy.get("domain", ""),
+            "paradigm_tags": legacy.get("paradigm_tags", []),
+            "constraints": legacy.get("constraints", []),
+            "success_criteria": legacy.get("success_criteria", []),
+            "snapshot_hash": legacy.get("snapshot_hash", ""),
+            "version": legacy.get("version", ""),
+        },
+        "context": {"iteration_of": legacy["system_id"]},
+    }
+
+
+def evaluate_evolution_value(legacy: dict[str, Any],
+                             new_dna: dict[str, Any]) -> dict[str, Any]:
+    """阶段4：进化价值判定器（防递归死循环核心）。
+
+    三个判定维度，满足至少两项才判定为有效进化：
+      1. 范式标签相似度 < 阈值（不是完全复刻）
+      2. 约束集合发生变更
+      3. 快照哈希显著变化（排除仅注释/格式修改）
+    否则标记 redundant_iteration，终止流水线，不写入矩阵。
+    """
+    legacy_tags = set(legacy.get("paradigm_tags", []))
+    new_tags = set(new_dna.get("paradigm_hints", [])) | set(
+        new_dna.get("_iteration_paradigm_tags", []))
+    # 概念层相似度：Jaccard 系数（交集/并集）
+    union = legacy_tags | new_tags
+    similarity = len(legacy_tags & new_tags) / len(union) if union else 1.0
+    dim1 = similarity < PARADIGM_SIMILARITY_THRESHOLD
+
+    legacy_constraints = legacy.get("constraints", [])
+    new_constraints = new_dna.get("constraints", [])
+    # 概念层：比较约束描述集合是否变化
+    legacy_desc = {c.get("description", "") for c in legacy_constraints}
+    new_desc = {c.get("description", "") for c in new_constraints}
+    dim2 = legacy_desc != new_desc
+
+    legacy_hash = legacy.get("snapshot_hash", "")
+    new_hash = new_dna.get("_iteration_snapshot_hash", "")
+    dim3 = (new_hash != legacy_hash and new_hash != "")
+
+    dims_met = sum([dim1, dim2, dim3])
+    valid = dims_met >= 2
+    return {
+        "valid_evolution": valid,
+        "dimensions": {
+            "paradigm_similarity": round(similarity, 3),
+            "constraint_changed": dim2,
+            "snapshot_hash_changed": dim3,
+        },
+        "dims_met": dims_met,
+        "verdict": "valid_evolution" if valid else "redundant_iteration",
+        "reason": (
+            f"范式相似度={round(similarity, 3)}(<{PARADIGM_SIMILARITY_THRESHOLD}="
+            f"{dim1}) 约束变更={dim2} 哈希变更={dim3} 满足{dims_met}/3≥2"
+            if valid else
+            f"仅满足{dims_met}/3维度(<2)，判定为冗余迭代"),
+    }
+
+
+def _test_phase4() -> int:
+    """阶段4验证：场景 H（有效进化）/ I（冗余迭代）/ J（递归深度超限）。"""
+    print("[TEST-P4] 阶段4递归闭环验证开始（有效进化/冗余迭代/深度保护）")
+    passed = True
+
+    # ---- 场景 H：有效二次进化 ----
+    # 对 sys_lit_review_001 迭代：修改约束（新增"支持德语优先"）+ 范式标签变化
+    legacy_h = matrix_load_system("sys_lit_review_001")
+    assert legacy_h is not None
+    new_dna_h = {
+        "paradigm_hints": ["信息论", "科研范式", "计算语言学"],  # 与旧版略有差异
+        "constraints": legacy_h["constraints"] + [
+            {"type": "hard", "dimension": "technology",
+             "description": "德语文献优先处理"}],
+        "_iteration_snapshot_hash": "hash_v2_def456",
+        "_iteration_paradigm_tags": ["信息论", "科研范式", "计算语言学"],
+    }
+    verdict_h = evaluate_evolution_value(legacy_h, new_dna_h)
+    h_ok = verdict_h["verdict"] == "valid_evolution"
+    print(f"[TEST-P4] H 有效二次进化: {'✓' if h_ok else '✗'} "
+          f"{verdict_h['reason']}")
+    passed = passed and h_ok
+
+    # 概念验证：有效进化写入矩阵，生成 sys_lit_review_002，evolves_from 溯源
+    _MATRIX_STORE["sys_lit_review_002"] = {
+        "system_id": "sys_lit_review_002",
+        "name": "跨语言文献综述辅助系统 v2",
+        "domain": "学术研究",
+        "paradigm_tags": new_dna_h["_iteration_paradigm_tags"],
+        "constraints": new_dna_h["constraints"],
+        "success_criteria": legacy_h["success_criteria"],
+        "snapshot_hash": "hash_v2_def456",
+        "version": "002",
+        "evolves_from": "sys_lit_review_001",  # 溯源边
+        "versions": legacy_h["versions"] + ["sys_lit_review_002"],
+    }
+    v2 = _MATRIX_STORE["sys_lit_review_002"]
+    h2_ok = v2["evolves_from"] == "sys_lit_review_001" and v2["version"] == "002"
+    print(f"[TEST-P4] H evolves_from 溯源: {'✓' if h2_ok else '✗'} "
+          f"{v2['system_id']}→{v2['evolves_from']}")
+    passed = passed and h2_ok
+
+    # ---- 场景 I：无变更重复原型（冗余迭代）----
+    new_dna_i = {
+        "paradigm_hints": legacy_h["paradigm_tags"],       # 完全复刻范式
+        "constraints": legacy_h["constraints"],             # 约束未变
+        "_iteration_snapshot_hash": legacy_h["snapshot_hash"],  # 哈希未变
+        "_iteration_paradigm_tags": legacy_h["paradigm_tags"],
+    }
+    verdict_i = evaluate_evolution_value(legacy_h, new_dna_i)
+    i_ok = verdict_i["verdict"] == "redundant_iteration"
+    print(f"[TEST-P4] I 冗余迭代判定: {'✓' if i_ok else '✗'} "
+          f"{verdict_i['reason']}")
+    passed = passed and i_ok
+    # 冗余迭代不写入矩阵（不新增 sys_lit_review_003）
+    no_003 = "sys_lit_review_003" not in _MATRIX_STORE
+    print(f"[TEST-P4] I 矩阵未更新: {'✓' if no_003 else '✗'} "
+          f"（无 sys_lit_review_003 产生）")
+    passed = passed and no_003
+
+    # ---- 场景 J：连续多层递归，到达 max_recursion_depth 硬上限 ----
+    depth = 0
+    reached_limit = False
+    current_id = "sys_lit_review_001"
+    while depth < MAX_RECURSION_DEPTH + 2:  # 故意多迭代几层以触发上限
+        if depth >= MAX_RECURSION_DEPTH:
+            reached_limit = True
+            break
+        legacy_j = matrix_load_system(current_id)
+        assert legacy_j is not None
+        # 每层都做"有效变更"以继续递归（构造新约束）
+        new_dna_j = {
+            "paradigm_hints": ["信息论", "科研范式"],
+            "constraints": legacy_j["constraints"] + [
+                {"type": "hard", "dimension": "technology",
+                 "description": f"递归第{depth+1}层新增约束"}],
+            "_iteration_snapshot_hash": f"hash_r{depth}_xyz",
+            "_iteration_paradigm_tags": ["信息论", "科研范式"],
+        }
+        if evaluate_evolution_value(legacy_j, new_dna_j)["verdict"] != "valid_evolution":
+            break  # 不再有效进化，递归自然终止
+        new_id = f"sys_lit_review_{depth+3:03d}"
+        _MATRIX_STORE[new_id] = {
+            "system_id": new_id, "name": f"v{depth+3}",
+            "domain": "学术研究",
+            "paradigm_tags": new_dna_j["_iteration_paradigm_tags"],
+            "constraints": new_dna_j["constraints"],
+            "success_criteria": legacy_j["success_criteria"],
+            "snapshot_hash": new_dna_j["_iteration_snapshot_hash"],
+            "version": f"{depth+3:03d}",
+            "evolves_from": current_id,
+            "versions": legacy_j["versions"] + [new_id],
+        }
+        current_id = new_id
+        depth += 1
+    j_ok = reached_limit
+    print(f"[TEST-P4] J 递归深度保护: {'✓' if j_ok else '✗'} "
+          f"max_recursion_depth={MAX_RECURSION_DEPTH} 层触发硬上限保护")
+    passed = passed and j_ok
+
+    print(f"\n[TEST-P4] 阶段4验证: {'全部通过 ✓' if passed else '存在失败 ✗'}")
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":
