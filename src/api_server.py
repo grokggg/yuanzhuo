@@ -35,13 +35,25 @@ ST_FAILED = "failed"
 
 
 class UHESApiServer:
-    """HTTP API 服务（异步任务 + 状态轮询 + 交付包获取）。"""
+    """HTTP API 服务（异步任务 + 状态轮询 + 交付包获取）。
+
+    第17项优化（工程加固）：
+      - 任务上限 MAX_JOBS（防无界提交）；
+      - 并发限制 MAX_CONCURRENT（Semaphore 控并发执行线程）；
+      - 任务超时 JOB_TIMEOUT（超时标记 failed，不悬挂）。
+    """
+
+    # 工程加固参数
+    MAX_JOBS = 200            # 任务上限（防无界）
+    MAX_CONCURRENT = 4        # 最大并发执行
+    JOB_TIMEOUT = 600         # 单任务超时（秒）
 
     def __init__(self, port: int = 8765, host: str = "127.0.0.1"):
         self.port = port
         self.host = host
         self._jobs: dict[str, dict[str, Any]] = {}  # job_id -> job
         self._lock = threading.Lock()
+        self._sem = threading.Semaphore(self.MAX_CONCURRENT)
         self._httpd: Optional[ThreadingHTTPServer] = None
         self._thread: Optional[threading.Thread] = None
 
@@ -66,14 +78,47 @@ class UHESApiServer:
             "error": None,
         }
         with self._lock:
+            # 第17项优化：任务上限（防无界提交）
+            if len(self._jobs) >= self.MAX_JOBS:
+                return {"job_id": None, "status": "rejected",
+                        "error": f"任务队列已满(>{self.MAX_JOBS})"}
             self._jobs[job_id] = job
-        # 后台执行（不阻塞提交）
+        # 后台执行（不阻塞提交，并发信号量限制）
         threading.Thread(target=self._run_job, args=(job_id,),
                          daemon=True).start()
         return {"job_id": job_id, "status": ST_QUEUED}
 
     def _run_job(self, job_id: str) -> None:
-        """后台执行流水线（设计师 Agent 运行 + 交付包产出）。"""
+        """后台执行流水线（设计师 Agent 运行 + 交付包产出）。
+
+        第17项优化：并发信号量限制 + 任务超时保护。
+        """
+        acquired = self._sem.acquire(timeout=5)
+        if not acquired:
+            with self._lock:
+                self._jobs[job_id]["status"] = ST_FAILED
+                self._jobs[job_id]["error"] = "并发繁忙,获取执行许可超时"
+            return
+        try:
+            self._execute_job(job_id)
+        finally:
+            self._sem.release()
+
+    def _execute_job(self, job_id: str) -> None:
+        """执行流水线（超时保护）。"""
+        import threading as _th
+        result_holder: dict[str, Any] = {}
+        worker = _th.Thread(target=self._run_job_worker,
+                            args=(job_id, result_holder), daemon=True)
+        worker.start()
+        worker.join(timeout=self.JOB_TIMEOUT)
+        if worker.is_alive():
+            with self._lock:
+                self._jobs[job_id]["status"] = ST_FAILED
+                self._jobs[job_id]["error"] = f"任务超时(>{self.JOB_TIMEOUT}s)"
+
+    def _run_job_worker(self, job_id: str, result_holder: dict[str, Any]) -> None:
+        """实际流水线执行（超时保护的 worker）。"""
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import main as m
         # 无 ZHIPU_API_KEY 时注入 LLM mock（离线也能真实解析自定义需求）

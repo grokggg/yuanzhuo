@@ -82,3 +82,12 @@ python3 main.py --plugins src/plugins # 第7项优化:动态加载插件覆盖�
 | `IntegrityChecker` | docs/10 5.5 节（含 P0 修复 C4、P1 修复 C3） |
 | `demo_input()` 案例 | docs/11（跨语言文献综述辅助系统） |
 | `_test_phase2()` | docs/10 阶段2定义 + docs/11（阶段2能力推演） |
+
+## 工程级迭代模块（第 14~17 项）
+
+| 模块 | 职责 | 验证命令 |
+|------|------|----------|
+| experts.py | 42 专家圆桌(独立 LLM 推演+收敛) | python3 experts.py / --real |
+| homology.py | 581 同构数据化(SQLite+检索+推理) | python3 homology.py [--db] |
+| llm_gateway.py | LLM 多通道网关(glm-4-flash+备选) | python3 llm_gateway.py |
+| paradigms.py | 范式库数据+embedding 匹配 | python3 paradigms.py |

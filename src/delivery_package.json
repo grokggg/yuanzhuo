@@ -2,7 +2,7 @@
   "package_meta": {
     "run_id": "run_lit_review_demo",
     "package_version": "1.0",
-    "generated_at": "2026-10-02T12:12:13+00:00",
+    "generated_at": "2026-10-02T14:34:10+00:00",
     "final_status": "completed",
     "degradation_records": [],
     "paradigm_catalog_version": "29组初始版",
@@ -393,57 +393,147 @@
         "triggered": true,
         "trigger_reason": "risks 含 high 级",
         "expert_subset": [
-          "信息论",
           "语言学",
+          "信息论",
           "科研方法论",
           "复杂系统"
         ],
         "expert_count": 4,
-        "phase2": {
-          "mode": "on_demand",
-          "note": "阶段2按需圆桌：match_confidence=low 时触发（01记忆匣阶段2能力）"
-        }
+        "llm_mode": "mock",
+        "roundtable_version": "2.0-real"
       },
       "findings": {
         "consensus_list": [
-          "证据可溯源是首要价值",
-          "翻译损耗不可完全消除,须显式标注不确定性",
-          "锚点应定义在语义单元层"
+          "语义、语法、语用、跨语言结构视角:设计结构清晰",
+          "熵、信息增益、信道容量、编码效率视角:设计结构清晰",
+          "假设检验、可证伪性、同行评议、复现性视角:设计结构清晰",
+          "涌现、自组织、非线性、反馈回路视角:设计结构清晰"
         ],
         "risk_list": [
           {
-            "risk": "冗余锚定是缓解不是消除",
+            "risk": "语义、语法、语用、跨语言结构视角:需补充细节验证",
+            "source_expert": "语言学",
+            "severity": "medium"
+          },
+          {
+            "risk": "熵、信息增益、信道容量、编码效率视角:需补充细节验证",
             "source_expert": "信息论",
             "severity": "medium"
           },
           {
-            "risk": "语义单元锚点实现成本高于句子锚点",
-            "source_expert": "语言学",
+            "risk": "假设检验、可证伪性、同行评议、复现性视角:需补充细节验证",
+            "source_expert": "科研方法论",
+            "severity": "medium"
+          },
+          {
+            "risk": "涌现、自组织、非线性、反馈回路视角:需补充细节验证",
+            "source_expert": "复杂系统",
             "severity": "medium"
           }
         ],
         "disagreement_list": [
           {
-            "topic": "文献网络中心性可否作为证据强度信号",
+            "topic": "语言学 vs 信息论 视角差异",
             "nature": "disciplinary_perspective",
             "positions": [
-              "信息论:不可",
-              "复杂系统:可作补充"
+              "语言学:语义、语法、语用、跨语言结构视角:设计结",
+              "信息论:熵、信息增益、信道容量、编码效率视角:设"
+            ]
+          },
+          {
+            "topic": "语言学 vs 科研方法论 视角差异",
+            "nature": "disciplinary_perspective",
+            "positions": [
+              "语言学:语义、语法、语用、跨语言结构视角:设计结",
+              "科研方法论:假设检验、可证伪性、同行评议、复现性视角"
+            ]
+          },
+          {
+            "topic": "语言学 vs 复杂系统 视角差异",
+            "nature": "disciplinary_perspective",
+            "positions": [
+              "语言学:语义、语法、语用、跨语言结构视角:设计结",
+              "复杂系统:涌现、自组织、非线性、反馈回路视角:设计"
             ]
           }
         ],
         "recommended_methodologies": [
-          "反例构造法",
-          "鲁棒性边界测试",
-          "交叉对照验证",
-          "约束流形构建"
+          "概念定义域审计",
+          "边界条件提取法",
+          "约束流形构建",
+          "谱特征提取",
+          "可证伪预测构造"
         ]
       },
+      "expert_deliberations": [
+        {
+          "expert_id": "E21",
+          "expert_name": "语言学",
+          "discipline": "人文类",
+          "strengths": [
+            "语义、语法、语用、跨语言结构视角:设计结构清晰"
+          ],
+          "weaknesses": [
+            "语义、语法、语用、跨语言结构视角:需补充细节验证"
+          ],
+          "methods": [
+            "概念定义域审计",
+            "边界条件提取法"
+          ],
+          "llm_available": false
+        },
+        {
+          "expert_id": "E16",
+          "expert_name": "信息论",
+          "discipline": "计算机类",
+          "strengths": [
+            "熵、信息增益、信道容量、编码效率视角:设计结构清晰"
+          ],
+          "weaknesses": [
+            "熵、信息增益、信道容量、编码效率视角:需补充细节验证"
+          ],
+          "methods": [
+            "约束流形构建",
+            "谱特征提取"
+          ],
+          "llm_available": false
+        },
+        {
+          "expert_id": "E39",
+          "expert_name": "科研方法论",
+          "discipline": "其他",
+          "strengths": [
+            "假设检验、可证伪性、同行评议、复现性视角:设计结构清晰"
+          ],
+          "weaknesses": [
+            "假设检验、可证伪性、同行评议、复现性视角:需补充细节验证"
+          ],
+          "methods": [
+            "可证伪预测构造",
+            "独立重复核验"
+          ],
+          "llm_available": false
+        },
+        {
+          "expert_id": "E30",
+          "expert_name": "复杂系统",
+          "discipline": "其他",
+          "strengths": [
+            "涌现、自组织、非线性、反馈回路视角:设计结构清晰"
+          ],
+          "weaknesses": [
+            "涌现、自组织、非线性、反馈回路视角:需补充细节验证"
+          ],
+          "methods": [
+            "网络拓扑表征",
+            "动力学建模"
+          ],
+          "llm_available": false
+        }
+      ],
       "feedback_to_matching": {
         "adjusted_paradigm_ids": null,
-        "adjustment_notes": "采纳'锚点定义在语义单元层'→蓝图约束调整",
-        "fundamental_error_found": false,
-        "rollback_count": 0
+        "adjustment_notes": "真实圆桌收敛,采纳跨学科共识"
       }
     },
     "05_methodology_usage_record": {
@@ -777,23 +867,23 @@
         },
         {
           "artifact_id": "04",
-          "hash": "c57f7d1a5de4adfb",
+          "hash": "1b43ab6e669c0ece",
           "prev_hash": "2b3070b4940dcf37"
         },
         {
           "artifact_id": "05",
-          "hash": "ec734a29c685f98f",
-          "prev_hash": "c57f7d1a5de4adfb"
+          "hash": "15dd6e2d3e41738c",
+          "prev_hash": "1b43ab6e669c0ece"
         },
         {
           "artifact_id": "06",
-          "hash": "bf5409b1b888be77",
-          "prev_hash": "ec734a29c685f98f"
+          "hash": "a08ed38e28ec7c23",
+          "prev_hash": "15dd6e2d3e41738c"
         },
         {
           "artifact_id": "07",
-          "hash": "f3d5aa7b7116b919",
-          "prev_hash": "bf5409b1b888be77"
+          "hash": "456cfb074ba12839",
+          "prev_hash": "a08ed38e28ec7c23"
         }
       ],
       "chain_integrity": true,

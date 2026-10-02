@@ -260,6 +260,37 @@ def _zhipu_api_key() -> str:
     return _os.environ.get("ZHIPU_API_KEY", "") or _os.environ.get("ZHIPU_API_KEY_ALT", "")
 
 
+def _llm_chat_json(prompt: str, max_tokens: int = 300,
+                   temperature: float = 0.3) -> dict[str, Any]:
+    """通用 LLM JSON 聊天封装（第14项优化：供专家圆桌等复用）。
+
+    返回解析后的 JSON dict；失败抛异常（由调用方决定降级策略）。
+    """
+    import urllib.request as _url_req
+    key = os.environ.get("ZHIPU_API_KEY", "")
+    if not key:
+        raise RuntimeError("ZHIPU_API_KEY 未设置")
+    payload = {
+        "model": _ZHIPU_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+    req = _url_req.Request(
+        _ZHIPU_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with _url_req.urlopen(req, timeout=_LLM_TIMEOUT) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    content = data["choices"][0]["message"]["content"].strip()
+    start, end = content.find("{"), content.rfind("}")
+    if start >= 0 and end > start:
+        return json.loads(content[start:end + 1])
+    return {}
+
+
 def _llm_review_hybrid(composite_name: str, source_paradigms: list[str],
                        core_axioms: list[str], goal: str) -> dict[str, Any]:
     """LLM 评审杂交合理性(第3项优化,真实调用智谱 GLM)。
@@ -1375,17 +1406,44 @@ def gate_s2(state: PIPELINE_STATE) -> GateResult:
 
 
 def step_s25_roundtable(state: PIPELINE_STATE) -> None:
-    """S2.5 专家圆桌会诊（概念模拟：4 位专家子集）。
+    """S2.5 专家圆桌会诊（第14项优化：真实 42 专家 LLM 独立推演 + 收敛）。
 
     阶段2能力（01 记忆匣阶段2【能力补齐】：按需触发专家圆桌）：
       - 阶段2下 match_confidence=low 也触发圆桌（阶段1直接降级跳过）；
       - 触发条件与 docs/10 3.5 节一致（含第4条 match_confidence=low）。
+
+    第14项优化：由 experts.ExpertPanel 真实执行——
+      42 位专家库 → 按范式线索筛选子集 → 每位专家独立 LLM 推演(三部分输出)
+      → 真实收敛器(共识/分歧/风险/方法论投票)；
+      LLM 不可用或无 key 时回退结构化专家模板（离线可重复）。
     """
     # 阶段2：若 match_confidence=low，则作为额外触发理由记录
     match_conf = state.artifacts.get("S2", {}).get("match_confidence", "high")
     extra_trigger = ""
     if match_conf == "low":
         extra_trigger = "；阶段2按需圆桌：match_confidence=low 触发多视角确认"
+
+    # 第14项优化：真实专家圆桌
+    try:
+        import experts as _exp
+        dna = state.artifacts.get("S1", {}).get("dna", {})
+        s2 = state.artifacts.get("S2", {})
+        hints = dna.get("paradigm_hints", []) or s2.get("matched_paradigms", [])[:4]
+        requirement = dna.get("goal", {}).get("primary", "") or state.input.get("raw_requirement", "")
+        design_summary = f"范式线索:{hints};匹配:{s2.get('match_confidence', 'high')}"
+        rt = _exp.run_roundtable(
+            requirement=requirement,
+            paradigm_hints=[str(h) for h in hints],
+            design_summary=design_summary,
+            use_mock=not bool(os.environ.get("ZHIPU_API_KEY")),
+            max_experts=6)
+        state.artifacts["S2.5"] = rt
+        state.artifacts["S2.5"]["session_meta"]["trigger_reason"] = (
+            "risks 含 high 级" + extra_trigger)
+        return
+    except Exception:
+        pass  # 回退到下方概念模拟
+
     state.artifacts["S2.5"] = {
         "session_meta": {
             "triggered": True,
