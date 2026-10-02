@@ -2,7 +2,7 @@
 
 > 冻结原型 + LLM 驱动真实引擎(12 项优化 + 自我优化闭环 + 最终全貌报告)
 >
-> 基线提交: 待更新(docs/20 提交后)
+> 基线提交: be377d1(最终全貌报告入库)
 > 生成时间: 2026-10-02
 > 文件数: 39
 
@@ -11,7 +11,7 @@
 | 文件 | SHA256 |
 |------|--------|
 | `./.gitignore` | `89f376f1962d0403233ced1f6b58ecf06f590d8b2004b5b66e8e69fb94fcabb0` |
-| `./MANIFEST.md` | `a3922d47bf04893c74df14da3cc14bf95ac27f82bf7f8341dcd732fc85c3a59f` |
+| `./MANIFEST.md` | `e8a353acf58c9e8f6ebfd73a1dcae24fb14d1cd634f27d37c1da39cc73303552` |
 | `./README.md` | `f145b82e285fdd23ec82724b563594ab26bba1ca6e75a7c81a34c14287fb3d03` |
 | `./architecture/插件架构.md` | `39794bc3863a7050322707da8e6be1e2caa751890ae41577ae707fc55d267484` |
 | `./architecture/系统矩阵.md` | `de232fe42585c089d2a65ff41c5f11e1caf52fdbc0a7c4bc7c20bb4432c82a3a` |
