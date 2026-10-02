@@ -231,12 +231,16 @@ def run_roundtable(requirement: str,
     panel = ExpertPanel()
     subset = panel.select_subset(paradigm_hints, max_n=max_experts)
 
-    # 1. 独立推演（并行思想：顺序调用，各自独立 prompt）
-    deliberations = [
-        panel.expert_deliberate(e, requirement, paradigm_hints,
-                                design_summary, use_mock)
-        for e in subset
-    ]
+    # 1. 独立推演（第19项优化：并行执行，互不影响，大幅降延迟）
+    from concurrent.futures import ThreadPoolExecutor
+    deliberations: list[dict[str, Any]] = []
+    with ThreadPoolExecutor(max_workers=min(6, len(subset))) as pool:
+        futures = [
+            pool.submit(panel.expert_deliberate, e, requirement,
+                        paradigm_hints, design_summary, use_mock)
+            for e in subset
+        ]
+        deliberations = [f.result() for f in futures]
 
     # 2. 真实收敛器
     consensus: list[str] = []

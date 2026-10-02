@@ -1,17 +1,17 @@
 # UHES 交付清单(MANIFEST)
 
-> 冻结原型 + LLM 真实引擎 + 工程级迭代 + 自举验证
+> 冻结原型 + LLM 真实引擎 + 工程级迭代 + 自举验证 + 用户压测
 >
-> 基线提交: 待更新(docs/21 提交后)
-> 文件数: 50
+> 基线提交: 待更新(docs/22 提交后)
+> 文件数: 53
 
 ## 文件清单(SHA256)
 
 | 文件 | SHA256 |
 |------|--------|
 | `./.gitignore` | `89f376f1962d0403233ced1f6b58ecf06f590d8b2004b5b66e8e69fb94fcabb0` |
-| `./MANIFEST.md` | `33df36bd95055c40edc7d6128f87009062084726778da4c24441495999203335` |
-| `./README.md` | `6955e7bfced213480a648a9688ce694a9eb1bd87d9cd928d1c0fd413ee1e6937` |
+| `./MANIFEST.md` | `9bf026060732e1d36bb3f94e98d656ffaf5da0f5bb37a214c8f8081c8b6c472e` |
+| `./README.md` | `7c3d39bce05b972a775584b84a69588864bd22be84427151f2174016c13679de` |
 | `./architecture/插件架构.md` | `39794bc3863a7050322707da8e6be1e2caa751890ae41577ae707fc55d267484` |
 | `./architecture/系统矩阵.md` | `de232fe42585c089d2a65ff41c5f11e1caf52fdbc0a7c4bc7c20bb4432c82a3a` |
 | `./architecture/范式库.md` | `7ace7299051f70c802d009879ada3621c4562da00d4dea36db9901675d24c47b` |
@@ -36,18 +36,20 @@
 | `./docs/19-自我优化闭环.md` | `2beb49a03794917c06194f51286c7da2daf21fffc7a5935c0fd07bf15f2b9058` |
 | `./docs/20-最终全貌报告.md` | `0954daa0e813dc095cfbc42b62e01fdab62342cd43f223347850e222118fe28b` |
 | `./docs/21-圆桌专家审议自我优化.md` | `45f48960851e7a55285eca2050002bf5e184beea8028e9e07ca60d2c112b7b57` |
+| `./docs/22-100用户压力模拟.md` | `ee1e7ee6bf9f90b4aece66a8c9f2c3272c3b3eddacf98d63fec7cc1ebd09841e` |
 | `./src/README.md` | `fef2acf92af658dfeab73bd17d706a85a429a3261771fe7856053aa4d45c3c1e` |
-| `./src/__pycache__/agents.cpython-313.pyc` | `34d355da202a98709aac4e31e4cf1c52f70f39210c499d54e515d1e302f1a8ef` |
+| `./src/__pycache__/api_server.cpython-313.pyc` | `f2654a5ccbbd1bf8ffc2ad622bbe9bf368d01772857b8748846d7e50748f7b6e` |
 | `./src/__pycache__/evolution.cpython-313.pyc` | `8f7afe278c662331c3431131ad98e49d9e9b74bf5fd4422b541be3ef45a30212` |
-| `./src/__pycache__/experts.cpython-313.pyc` | `9acf7e965dd26943dcbba86e61f567a0262af85e6e6bd20e948b41a97abe2646` |
+| `./src/__pycache__/experts.cpython-313.pyc` | `5937ad86e7af766a3cb396b23a4b22f0607d795d76cfbbe8713f14d4516bddff` |
 | `./src/__pycache__/main.cpython-313.pyc` | `9e1d8ed116a959cf866aab4552305e690ea5706dd661959ea46916008eabef98` |
 | `./src/__pycache__/matrix_store.cpython-313.pyc` | `93da8b94d9176d0adf53439b803d680cea6658826e3546b9fb06d4393497d639` |
-| `./src/__pycache__/test_suite.cpython-313.pyc` | `7d4a063e4607fd2076c33d1902c3fd102686c770e1187240a089cc65cfef003c` |
+| `./src/__pycache__/test_suite.cpython-313.pyc` | `9f8f485e8b0b9bfd2aba4add345d59d78843954a3f79081daa8354dec70c2f0d` |
+| `./src/__pycache__/user_simulator.cpython-313.pyc` | `29c502d6a5e10bd141094656b1b02aa0f8eaea57c8f10db7def60a7d906b5551` |
 | `./src/agents.py` | `2b6adad752c27799cdcd1834250954719aa873e480216e5568d83a002f44a6d4` |
 | `./src/api_server.py` | `7f8b337d3d8b5346e3d7f0b4946aca93e73ebb54abc7087f9fe38486dc5eab47` |
 | `./src/delivery_package.json` | `f61c9362a84ef3aeeb42237245a402422900a1e285d070092e249ee8a4ee6eda` |
 | `./src/evolution.py` | `e4d38dc06f329bf75fa66f50438c2884b15cb29e2ad9dec14eb21ff11c803362` |
-| `./src/experts.py` | `658b5bc02e51b26a8bcebb06eaa85564528001dc3b06ba2d795c61ddd9680ecd` |
+| `./src/experts.py` | `f65682c8ec3deb34037877c325aaba3db63dd7ce8dee8b4afbb255654276c08d` |
 | `./src/homology.py` | `9832ab6c16964be9659ec64b8c9b1b015b23855fff52c828bac3ead839d42731` |
 | `./src/llm_gateway.py` | `5558162947999e49e96eed13ae67eb3ae141b2cfef6fea8e258da46e6c2106b1` |
 | `./src/main.py` | `60526b7d4fd65d6d1bf4a5ae9d5420634367eb16c8cf535cf287c86420fb86ee` |
@@ -58,4 +60,5 @@
 | `./src/plugins/step_s1_llm.py` | `a7e3d781e8831c56c39428cb66c6e4d2c3eb32e471ed38d0cac51856a3936982` |
 | `./src/requirements.txt` | `913c872d36f7860de7f4a0a6d2ea5c798ff56bc9113e11fe779fcc97ae9d52be` |
 | `./src/self_optimize.py` | `d299a760b4a3863321d728efc7aba8801616d68e4077e7fa257831712be52222` |
-| `./src/test_suite.py` | `a2e4063aa0d83a36cc7229c1438fd68571e16fd10c69aa5b995569a03653bb29` |
+| `./src/test_suite.py` | `4c612b46a4fe5a78b81bf7e0deece952719297d3bcc4fc16055eba9b5f1712c2` |
+| `./src/user_simulator.py` | `d92a24252f89b21cedbf017592822cadd6106fe6d7e659aab7d1e16d0255c067` |

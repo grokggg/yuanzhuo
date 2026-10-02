@@ -167,10 +167,25 @@ class LLMMock:
             first_line = raw.strip().split("\n")[0][:40]
             dna["goal"]["primary"] = first_line
             hint = context.get("domain_hint", "") if isinstance(context, dict) else ""
-            if hint:
+            # 第19项优化：领域→范式线索映射（mock 需求感知）
+            domain_paradigms = {
+                "医疗健康": ["系统论", "控制论", "科研范式"],
+                "在线教育": ["教育", "认知科学", "信息论"],
+                "电商零售": ["经济学", "信息论", "复杂系统"],
+                "金融服务": ["经济学", "控制论", "系统论"],
+                "智能制造": ["控制论", "系统工程", "热力学"],
+                "政务治理": ["系统论", "政治学", "信息论"],
+                "文化旅游": ["人类学", "社会学", "网络科学"],
+                "物流运输": ["系统工程", "动力学", "网络科学"],
+                "能源管理": ["热力学", "控制论", "系统论"],
+                "科研学术": ["科研范式", "信息论", "复杂系统"],
+            }
+            if hint in domain_paradigms:
+                dna["paradigm_hints"] = domain_paradigms[hint]
+            elif hint:
                 dna["paradigm_hints"] = [hint, "信息论", "系统论", "数据驱动"]
         return {"dna": dna, "llm_available": True,
-                "llm_note": "mock 解析(raw/迭代驱动)"}
+                "llm_note": "mock 解析(raw/迭代/领域驱动)"}
 
     def _mock_review(self, composite_name, sources, axioms, goal):
         return dict(_MOCK_REVIEW)
