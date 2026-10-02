@@ -1902,6 +1902,8 @@ def main() -> int:
                     help="插件目录（第7项优化：动态加载插件覆盖对应步骤侧车，如 src/plugins）")
     ap.add_argument("--trace", action="store_true",
                     help="输出结构化流水线事件流（JSON Lines，供回归测试/故障注入机器化校验）")
+    ap.add_argument("--agent", default="",
+                    help="多Agent分工（第10项优化：designer/validator/auditor 三环协作，如 --agent lit_review）")
     args = ap.parse_args()
 
     banner = textwrap.dedent("""
@@ -1933,6 +1935,18 @@ def main() -> int:
         print(f"\n[TEST-SUITE] 结果: {res['passed']}/{res['total']} 通过, "
               f"{res['failed']} 失败")
         return 0 if res["failed"] == 0 else 1
+    # ---- 第10项优化：多 Agent 分工（设计师/验证器/审计器三环）----
+    if args.agent:
+        import agents as _agents
+        report = _agents.run_multi_agent(case=args.agent)
+        print(f"\n[MULTI-AGENT] 最终裁决: {report['final_verdict']}")
+        print(f"  设计师: {report['pipeline']['final_status']} "
+              f"(降级{report['pipeline']['degradation']}/回退{report['pipeline']['rollback']})")
+        print(f"  验证器: {report['validate']['verdict']} "
+              f"发现={report['validate']['findings'] or '无'}")
+        print(f"  审计器: {report['audit']['verdict']} "
+              f"发现={report['audit']['findings'] or '无'}")
+        return 0 if report["final_verdict"] == "deliver" else 1
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
     case_inputs = {
