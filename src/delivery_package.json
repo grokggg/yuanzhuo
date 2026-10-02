@@ -2,7 +2,7 @@
   "package_meta": {
     "run_id": "run_lit_review_demo",
     "package_version": "1.0",
-    "generated_at": "2026-10-02T14:34:10+00:00",
+    "generated_at": "2026-10-02T16:08:03+00:00",
     "final_status": "completed",
     "degradation_records": [],
     "paradigm_catalog_version": "29组初始版",
@@ -30,6 +30,22 @@
       "called_by": [],
       "validates": [],
       "validated_by": []
+    },
+    "executive_summary": {
+      "one_liner": "构建「构建跨语言学术文献综述辅助系统,从四语文献池提取可溯源核心结」系统",
+      "modules_to_build": [
+        "文献接入",
+        "语义单元切分",
+        "术语对齐",
+        "证据抽取",
+        "证据冗余校验"
+      ],
+      "top_risks_to_handle": [
+        "不确定性标注机制未进入验收标准",
+        "交叉对照无矩阵内可用系统对接细节"
+      ],
+      "first_actions": [],
+      "note": "工程落地摘要(第20项优化):面向实施工程师,非学术描述"
     }
   },
   "artifacts": {

@@ -167,10 +167,28 @@ class EvolutionEngine:
                 "versions": versions,
                 "iteration_round": r,
                 "pipeline_status": pipeline.state.final_status,
+                # 第20项优化：改进度量化（用户反馈"002 比 001 好在哪里?没量化"）
+                "improvement_delta": {
+                    "paradigm_tags_added": sorted(
+                        set(new_dna.get("paradigm_hints", [])) -
+                        set(current.get("paradigm_tags", []))),
+                    "constraints_added": [
+                        c.get("description", "") for c in new_dna.get("constraints", [])
+                        if c.get("description", "") not in
+                        {x.get("description", "") for x in current.get("constraints", [])}],
+                    "success_criteria_added": [
+                        c for c in new_dna.get("success_criteria", [])
+                        if c not in current.get("success_criteria", [])],
+                    "snapshot_hash_changed": (
+                        new_dna.get("_iteration_snapshot_hash", "") !=
+                        current.get("snapshot_hash", "")),
+                    "judgement_dims_met": judgement["dims_met"],
+                },
             }
             self._register(new_record)
             round_info["action"] = "registered"
             round_info["new_system_id"] = new_system_id
+            round_info["improvement_delta"] = new_record["improvement_delta"]
             report["rounds"].append(round_info)
             report["version_chain"].append(new_system_id)
 

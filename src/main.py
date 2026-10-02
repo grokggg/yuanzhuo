@@ -822,6 +822,41 @@ class PipelineStateMachine:
             output_ref=self.state.artifacts.get(step)))
 
     # ---- 交付包组装（对应设计文档第 5 节） ----
+    def _build_executive_summary(self, seven: dict[str, Any]) -> dict[str, Any]:
+        """第20项优化：工程落地摘要（从七件套提取执行要点）。
+
+        用户反馈"输出像论文,工程师拿到要自己翻译"→ 用 3-5 条工程动作
+        概括"下一步该做什么",而非学术描述。
+        """
+        dna = seven.get("01_requirement_dna_report", {}).get("dna", {})
+        bp = seven.get("03_system_blueprint", {})
+        vr = seven.get("06_validation_report", {})
+        inc = seven.get("07_incubation_plan", {})
+
+        # 1. 目标一句话
+        goal = dna.get("goal", {}).get("primary", "未明确")
+
+        # 2. 模块落地要点（从蓝图模块名提取）
+        mods = [m.get("module_name", "") for m in
+                bp.get("architecture", {}).get("module_list", [])[:5]]
+
+        # 3. 关键风险（从验证报告缺陷取 top2）
+        defects = vr.get("defect_list", [])[:2]
+        risks = [d.get("description", d.get("defect", "")) for d in defects]
+
+        # 4. 首要行动（从孵化规划阶段1取）
+        phases = inc.get("phases", [])
+        first_action = (phases[0].get("actions", [])[:2] if phases
+                        else ["按蓝图模块 M1-M8 顺序实现"])
+
+        return {
+            "one_liner": f"构建「{goal[:30]}」系统",
+            "modules_to_build": mods,
+            "top_risks_to_handle": risks or ["暂无关键风险"],
+            "first_actions": first_action,
+            "note": "工程落地摘要(第20项优化):面向实施工程师,非学术描述",
+        }
+
     def _assemble_package(self) -> "DeliveryPackage":
         if self.state.final_status == "running":
             if self.state.degradation_count or self.state.rollback_count:
@@ -859,6 +894,9 @@ class PipelineStateMachine:
             "06_validation_report": self.state.artifacts.get("S5", {}),
             "07_incubation_plan": self.state.artifacts.get("S7", {}),
         }
+        # 第20项优化：工程落地摘要（用户反馈"输出像论文,工程师要自己翻译"）
+        executive_summary = self._build_executive_summary(seven)
+        meta["executive_summary"] = executive_summary
         package = DeliveryPackage(meta=meta, artifacts=seven)
         checker = IntegrityChecker()
         package.integrity = checker.check(package)
