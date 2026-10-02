@@ -48,8 +48,12 @@ class UHESApiServer:
     # ---- 任务管理 ----
     def submit(self, case: str = "lit_review",
                raw: Optional[str] = None,
-               context: Optional[dict[str, Any]] = None) -> dict[str, Any]:
-        """提交一个流水线任务，返回 job_id + 初始状态。"""
+               context: Optional[dict[str, Any]] = None,
+               iteration_of: Optional[str] = None) -> dict[str, Any]:
+        """提交一个流水线任务，返回 job_id + 初始状态。
+
+        第12项优化：iteration_of 非空时 = 进化任务（进化闭环真实执行）。
+        """
         job_id = uuid.uuid4().hex[:12]
         job = {
             "job_id": job_id,
@@ -57,6 +61,7 @@ class UHESApiServer:
             "case": case,
             "raw": raw,
             "context": context or {},
+            "iteration_of": iteration_of,
             "package": None,
             "error": None,
         }
@@ -83,6 +88,19 @@ class UHESApiServer:
         with self._lock:
             job["status"] = ST_RUNNING
         try:
+            # 第12项优化：进化任务（进化闭环真实执行）
+            if job.get("iteration_of"):
+                import evolution as _ev
+                engine = _ev.EvolutionEngine(
+                    db_path=os.environ.get("UHES_MATRIX_DB") or None)
+                result = engine.evolve(
+                    job["iteration_of"],
+                    rounds=job.get("context", {}).get("rounds", 2),
+                    use_mock=not os.environ.get("ZHIPU_API_KEY"))
+                with self._lock:
+                    job["package"] = {"evolution": result}
+                    job["status"] = ST_COMPLETED
+                return
             case_inputs = {
                 "lit_review": m.demo_input,
                 "analytics": m.demo_input_analytics,
@@ -114,8 +132,11 @@ class UHESApiServer:
                 "job_id": job["job_id"],
                 "status": job["status"],
                 "case": job["case"],
+                "iteration_of": job.get("iteration_of"),
                 "final_verdict": (job.get("package", {}) or {}).get(
                     "integrity", {}).get("verdict") if job["status"] == ST_COMPLETED else None,
+                "evolution_status": (job.get("package", {}) or {}).get(
+                    "evolution", {}).get("final_status") if job["status"] == ST_COMPLETED else None,
                 "error": job["error"],
             }
 
@@ -169,11 +190,12 @@ class UHESApiServer:
                     self._send(400, {"error": "bad_request"})
                     return
                 case = body.get("case", "lit_review")
-                if case not in ("lit_review", "analytics", "knowledge") and not body.get("raw"):
+                if case not in ("lit_review", "analytics", "knowledge") and not body.get("raw") and not body.get("iteration_of"):
                     self._send(400, {"error": "unsupported_case", "case": case})
                     return
                 result = server_ref.submit(
-                    case=case, raw=body.get("raw"), context=body.get("context"))
+                    case=case, raw=body.get("raw"), context=body.get("context"),
+                    iteration_of=body.get("iteration_of"))
                 self._send(202, result)
 
             def do_GET(self):

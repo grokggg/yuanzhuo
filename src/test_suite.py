@@ -149,7 +149,20 @@ class LLMMock:
     def _mock_parse(self, raw, context):
         # mock 解析：主目标取自 raw（自定义需求也能离线解析出真实目标）
         dna = json.loads(json.dumps(_MOCK_DNA))
-        if raw:
+        # 迭代输入：mock 模拟"真实进化"（范式扩展/约束调整/新哈希），
+        # 使进化价值判定能通过（阶段4 机制离线可测）
+        if isinstance(context, dict) and context.get("iteration_of"):
+            dna["goal"]["primary"] = f"迭代升级系统 {context['iteration_of']}"
+            base_tags = list(dna.get("paradigm_hints", []))
+            if "复杂系统" not in base_tags:
+                base_tags = base_tags + ["复杂系统"]
+            dna["paradigm_hints"] = base_tags
+            dna["constraints"] = dna.get("constraints", []) + [
+                {"type": "hard", "dimension": "evolution",
+                 "description": f"必须继承并增强 {context['iteration_of']} 的能力"}]
+            dna["_iteration_paradigm_tags"] = base_tags
+            dna["_iteration_snapshot_hash"] = f"hash_v{len(base_tags)}_iter"
+        elif raw:
             # 从 raw 提取主目标（首句截断）+ 领域线索
             first_line = raw.strip().split("\n")[0][:40]
             dna["goal"]["primary"] = first_line
@@ -157,7 +170,7 @@ class LLMMock:
             if hint:
                 dna["paradigm_hints"] = [hint, "信息论", "系统论", "数据驱动"]
         return {"dna": dna, "llm_available": True,
-                "llm_note": "mock 解析(raw 驱动)"}
+                "llm_note": "mock 解析(raw/迭代驱动)"}
 
     def _mock_review(self, composite_name, sources, axioms, goal):
         return dict(_MOCK_REVIEW)
@@ -256,6 +269,55 @@ def run_suite(use_mock: bool = True) -> dict[str, Any]:
         metrics = bus.export_metrics()
         check("可观测性事件总线",
               metrics["total_steps"] == 1 and len(bus.export_jsonl().splitlines()) >= 3)
+
+        # 6. 第12项：进化闭环真实执行（有效→登记新版本, 版本链 SQLite 持久化）
+        import tempfile
+        import evolution as _ev
+        ev_db = os.path.join(tempfile.mkdtemp(), "suite_ev.db")
+        engine = _ev.EvolutionEngine(db_path=ev_db)
+        ev_res = engine.evolve("sys_lit_review_001", rounds=2, use_mock=True)
+        check("进化闭环: 有效进化登记+版本链",
+              ev_res["evolved_count"] >= 1
+              and "sys_lit_review_002" in ev_res["version_chain"],
+              f"版本链={'→'.join(ev_res['version_chain'])}")
+        store2 = _ms.MatrixStore(ev_db)
+        ev_recs = store2.list_all()
+        check("进化闭环: SQLite 版本溯源",
+              len(ev_recs) >= 1
+              and ev_recs[-1]["evolves_from"] == "sys_lit_review_001"
+              and "sys_lit_review_002" in ev_recs[-1]["versions"],
+              f"记录={len(ev_recs)}")
+        os.unlink(ev_db)
+
+        # 7. 第11项：API 提交/轮询/取包端到端（mock 离线）
+        import api_server as _api
+        api_srv = _api.UHESApiServer(port=8767)
+        api_srv.start()
+        try:
+            import urllib.request as _url, json as _json
+            req = _url.Request(
+                "http://127.0.0.1:8767/jobs",
+                data=_json.dumps({"case": "lit_review"}).encode(),
+                headers={"Content-Type": "application/json"})
+            with _url.urlopen(req) as r:
+                api_resp = _json.loads(r.read().decode())
+            api_job = api_resp["job_id"]
+            api_status = "queued"
+            for _ in range(60):
+                with _url.urlopen(f"http://127.0.0.1:8767/jobs/{api_job}") as r:
+                    api_status = _json.loads(r.read().decode())["status"]
+                if api_status == "completed":
+                    break
+                import time
+                time.sleep(0.2)
+            with _url.urlopen(f"http://127.0.0.1:8767/jobs/{api_job}/package") as r:
+                api_pkg = _json.loads(r.read().decode())
+            check("API: 提交/轮询/取包",
+                  api_status == "completed"
+                  and api_pkg["package"]["integrity"]["verdict"] == "deliver",
+                  f"状态={api_status}")
+        finally:
+            api_srv.stop()
     finally:
         mock.restore(_main)
 
