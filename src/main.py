@@ -68,6 +68,21 @@ CLARIFY_LONG_TEXT_THRESHOLD = 500
 
 ARTIFACT_ORDER = ["01", "02", "03", "04", "05", "06", "07"]
 
+# ---------------------------------------------------------------------------
+# 0.1 阶段3扩展开关（铁律：扩展能力默认关闭）
+# ---------------------------------------------------------------------------
+
+EXTENSIONS_DEFAULT: dict[str, bool] = {
+    # 动力学等价杂交（enabled_depth=dynamics_equivalence，01 记忆匣阶段3）
+    "phase3_dynamics_hybrid": False,
+    # 系统关系网络（S8 登记时建立 validates/validated_by 关系）
+    "phase3_relation_network": False,
+    # 系统自动编排（矩阵内系统按依赖链组合，解决更大问题）
+    "phase3_auto_orchestration": False,
+}
+"""阶段3扩展开关配置（概念层）。默认全部关闭，显式开启才生效，
+对应设计文档"扩展能力默认关闭"铁律。"""
+
 
 # ---------------------------------------------------------------------------
 # 1. 数据类型（概念 Schema，对应设计文档各节）
@@ -123,13 +138,19 @@ class PipelineStateMachine:
     """
 
     def __init__(self, run_id: str, paradigm_catalog_version: str,
-                 methodology_catalog_version: str) -> None:
+                 methodology_catalog_version: str,
+                 extensions: Optional[dict[str, bool]] = None) -> None:
         self.state = PIPELINE_STATE(
             run_id=run_id,
             started_at=_now_iso(),
         )
         self.paradigm_catalog_version = paradigm_catalog_version
         self.methodology_catalog_version = methodology_catalog_version
+        # 阶段3扩展开关：合并默认配置，未开启项保持关闭（扩展能力默认关闭铁律）
+        self.extensions: dict[str, bool] = {
+            **EXTENSIONS_DEFAULT,
+            **(extensions or {}),
+        }
         self._steps: list[tuple[str, Callable, Callable]] = []
         self._optional_steps: set[str] = set()  # 可选步骤（圆桌/交叉验证），最短路径时跳过
 
@@ -150,6 +171,7 @@ class PipelineStateMachine:
         超过则降级继续；degradation + rollback 合计 >= 阈值触发最短路径。
         """
         self.state.artifacts["__input"] = raw_input  # 供 S1 概念上读取
+        self.state.artifacts["__extensions"] = self.extensions  # 供侧车读取扩展开关
         print(f"[UHES] 流水线启动 run_id={self.state.run_id}")
         idx = 0
         while idx < len(self._steps):
@@ -592,8 +614,18 @@ def gate_s1(state: PIPELINE_STATE) -> GateResult:
 
 
 def step_s2_match(state: PIPELINE_STATE) -> None:
-    """S2 范式匹配与杂交决策（概念模拟：信息论×科研范式 → 证据信道编码）。"""
-    state.artifacts["S2"] = {
+    """S2 范式匹配与杂交决策（概念模拟：信息论×科研范式 → 证据信道编码）。
+
+    阶段3扩展（01 记忆匣阶段3【扩展开关】：动力学等价杂交）：
+      - phase3_dynamics_hybrid 开启时，杂交深度从 structure 升级为 dynamics：
+        合并机制/动力学方程层面的等价关系，并强制公理自洽性检查；
+      - 扩展开关默认关闭（铁律），关闭时保持 structure_hybrid（阶段1/2行为）。
+    """
+    ext = state.artifacts.get("__extensions", {})
+    dynamics_on = bool(ext.get("phase3_dynamics_hybrid"))
+
+    # 基础匹配结果（阶段1/2/3 共用）
+    s2 = {
         "matched_paradigms": [
             {"paradigm_id": "para_info_theory_10", "paradigm_name": "信息论",
              "match_level": "high", "match_rationale": "翻译损耗本质是信道噪声",
@@ -606,8 +638,8 @@ def step_s2_match(state: PIPELINE_STATE) -> None:
              "axiom_coverage_note": "中", "contradictions": []},
         ],
         "hybridization": {
-            "branch": "structure_hybrid",
-            "hybrid_depth": "structure",
+            "branch": "dynamics_hybrid" if dynamics_on else "structure_hybrid",
+            "hybrid_depth": "dynamics" if dynamics_on else "structure",
             "selected_paradigm_ids": ["para_info_theory_10", "para_research_29"],
             "composite_paradigm": {
                 "id": "para_evidence_channel_coding_v1",
@@ -639,6 +671,25 @@ def step_s2_match(state: PIPELINE_STATE) -> None:
         },
     }
 
+    if dynamics_on:
+        # 阶段3：动力学等价杂交扩展（概念层声明，不编造真实方程）
+        hyb = s2["hybridization"]
+        hyb["composite_paradigm"].update({
+            "dynamics_equivalence_declared": True,
+            "dynamics_equivalence_note": (
+                "概念声明：两范式在'传递-失真-纠错'动力学结构上等价"
+                "（信源→噪声信道→纠错恢复 ≡ 原文→翻译抽取链路→冗余锚定恢复）；"
+                "概念层不编造具体方程系数"),
+        })
+        # 动力学杂交必须经圆桌评审（docs/10 3.5 触发条件第3条）
+        s2["expert_roundtable_trigger"].update({
+            "trigger_reason": ("risks 含 high 级 + 阶段3动力学杂交强制圆桌评审"
+                               "（docs/10 3.5 触发条件第3条）"),
+        })
+        s2["provenance"]["enabled_depth"] = "dynamics_equivalence"
+
+    state.artifacts["S2"] = s2
+
 
 def gate_s2(state: PIPELINE_STATE) -> GateResult:
     s2 = state.artifacts.get("S2", {})
@@ -646,6 +697,16 @@ def gate_s2(state: PIPELINE_STATE) -> GateResult:
         return GateResult(False, "范式库覆盖不足", "paradigm_coverage")
     if s2.get("hybridization", {}).get("branch") == "rejected":
         return GateResult(False, "所有候选范式与硬约束冲突", "all_conflict")
+    # 阶段3门控：动力学杂交必须通过公理自洽性检查，否则降级结构杂交
+    hyb = s2.get("hybridization", {})
+    if hyb.get("branch") == "dynamics_hybrid":
+        cp = hyb.get("composite_paradigm", {})
+        if not cp.get("self_consistency_checked"):
+            hyb["branch"] = "structure_hybrid"
+            hyb["hybrid_depth"] = "structure"
+            hyb["degradation_note"] = "dynamics_equivalence_not_verified（自洽性检查未通过，降级结构杂交）"
+            return GateResult(True, "匹配3组；动力学等价未验证→降级结构杂交（标记degradation_note）")
+        return GateResult(True, "匹配3组(2 high+1 medium)；动力学等价杂交，自洽性检查通过")
     return GateResult(True, "匹配3组(2 high+1 medium)；杂交决策 structure_hybrid")
 
 
@@ -965,21 +1026,45 @@ def gate_s7(state: PIPELINE_STATE) -> GateResult:
 
 
 def step_s8_register(state: PIPELINE_STATE) -> None:
-    """S8 系统矩阵登记（概念模拟）。"""
-    state.artifacts["S8"] = {
-        "registration": {
-            "system_id": "sys_lit_review_001",
-            "name": "跨语言文献综述辅助系统",
-            "domain": "学术研究",
-            "paradigm_tags": ["信息论", "科研范式", "语言学", "复杂系统"],
-            "methodology_tags": ["反例构造法", "鲁棒性边界测试", "交叉对照验证", "约束流形构建"],
-            "status": "draft",
-            "validation_score": "A级主导(概念等级)",
-            "depends_on": [], "called_by": [],
-            "validates": [], "validated_by": [],
-        },
-        "registered": True,
+    """S8 系统矩阵登记（概念模拟）。
+
+    阶段3扩展（01 记忆匣阶段3【扩展开关】：系统关系网络）：
+      - phase3_relation_network 开启时，登记关系网络字段：
+        validates（本系统验证了哪些矩阵内系统）/ validated_by（被哪些系统验证）；
+      - 概念层：基于范式标签相似度建立验证关系（不编造真实调用数据）。
+    """
+    ext = state.artifacts.get("__extensions", {})
+    rel_on = bool(ext.get("phase3_relation_network"))
+
+    registration = {
+        "system_id": "sys_lit_review_001",
+        "name": "跨语言文献综述辅助系统",
+        "domain": "学术研究",
+        "paradigm_tags": ["信息论", "科研范式", "语言学", "复杂系统"],
+        "methodology_tags": ["反例构造法", "鲁棒性边界测试", "交叉对照验证", "约束流形构建"],
+        "status": "draft",
+        "validation_score": "A级主导(概念等级)",
+        "depends_on": [], "called_by": [],
+        "validates": [], "validated_by": [],
     }
+    if rel_on:
+        # 阶段3：关系网络 —— 基于范式标签相似度（复用S6检索加权）建立验证关系
+        registration.update({
+            "validates": [
+                {"system_id": "sys_narrative_spectrum_001",
+                 "relation": "cross_validated", "basis": "文本结构范式标签相似度0.5"},
+            ],
+            "validated_by": [
+                {"system_id": "sys_active_inference_001",
+                 "relation": "cross_validated", "basis": "交叉验证机制分歧(medium置信度)"},
+            ],
+            "relation_network": {
+                "enabled": True,
+                "edge_count": 2,
+                "note": "概念层：验证关系基于范式标签相似度，不编造真实调用链",
+            },
+        })
+    state.artifacts["S8"] = {"registration": registration, "registered": True}
 
 
 def gate_s8(state: PIPELINE_STATE) -> GateResult:
@@ -992,11 +1077,13 @@ def gate_s8(state: PIPELINE_STATE) -> GateResult:
 # 7. 组装与入口
 # ---------------------------------------------------------------------------
 
-def build_pipeline(run_id: str) -> PipelineStateMachine:
+def build_pipeline(run_id: str,
+                   extensions: Optional[dict[str, bool]] = None) -> PipelineStateMachine:
     p = PipelineStateMachine(
         run_id=run_id,
         paradigm_catalog_version="29组初始版",
         methodology_catalog_version="30条常驻",
+        extensions=extensions,  # 阶段3扩展开关（默认全部关闭，显式开启才生效）
     )
     # 注册 8 步 + S2.5（可选步骤标记：S2.5 与 S6）
     p.register("S1", step_s1_parse, gate_s1)
@@ -1015,8 +1102,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="UHES 范式演化设计师概念状态机骨架（示意代码）")
     ap.add_argument("--case", default="lit_review", choices=["lit_review"],
                     help="内置概念演示案例（当前仅 lit_review）")
-    ap.add_argument("--test", default=None, choices=["phase2"],
-                    help="运行阶段2能力验证场景（主动澄清/常态化交叉验证/终止输出）")
+    ap.add_argument("--test", default=None, choices=["phase2", "phase3"],
+                    help="运行阶段能力验证场景（phase2: 主动澄清/常态化交叉验证/终止输出；"
+                         "phase3: 动力学杂交/关系网络/自动编排）")
     ap.add_argument("--out", default="delivery_package.json",
                     help="交付包 JSON 输出路径（默认 ./delivery_package.json）")
     args = ap.parse_args()
@@ -1033,6 +1121,9 @@ def main() -> int:
     # ---- 阶段2能力验证（01 记忆匣阶段2【能力补齐】）----
     if args.test == "phase2":
         return _test_phase2()
+    # ---- 阶段3能力验证（01 记忆匣阶段3【扩展开关】）----
+    if args.test == "phase3":
+        return _test_phase3()
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
     package = pipeline.run(demo_input())
@@ -1106,6 +1197,91 @@ def _test_phase2() -> int:
 
     print(f"\n[TEST-P2] 阶段2验证: {'全部通过 ✓' if passed else '存在失败 ✗'}")
     return 0 if passed else 1
+
+
+def _test_phase3() -> int:
+    """阶段3能力验证：动力学等价杂交 / 系统关系网络 / 系统自动编排。
+
+    对应 01 记忆匣阶段3【扩展开关】。全部为概念推演，扩展开关显式开启。
+    """
+    print("[TEST-P3] 阶段3能力验证开始（动力学杂交/关系网络/自动编排）")
+    passed = True
+
+    # 场景 D：动力学等价杂交 —— 开启 phase3_dynamics_hybrid
+    ext_d = {"phase3_dynamics_hybrid": True}
+    p1 = build_pipeline(run_id="run_phase3_dynamics", extensions=ext_d)
+    p1.run(demo_input())
+    hyb_d = p1.state.artifacts.get("S2", {}).get("hybridization", {})
+    dyn_ok = (hyb_d.get("branch") == "dynamics_hybrid"
+              and hyb_d.get("hybrid_depth") == "dynamics"
+              and hyb_d.get("composite_paradigm", {}).get("self_consistency_checked"))
+    rt_reason = p1.state.artifacts.get("S2", {}).get("expert_roundtable_trigger", {}).get("trigger_reason", "")
+    rt_ok = "动力学杂交强制圆桌评审" in rt_reason
+    print(f"[TEST-P3] D 动力学等价杂交: {'✓' if dyn_ok else '✗'} "
+          f"branch={hyb_d.get('branch')} depth={hyb_d.get('hybrid_depth')}")
+    print(f"[TEST-P3] D 圆桌强制评审: {'✓' if rt_ok else '✗'} "
+          f"理由={rt_reason[:40]}...")
+    passed = passed and dyn_ok and rt_ok
+
+    # 场景 E：系统关系网络 —— 开启 phase3_relation_network
+    ext_e = {"phase3_relation_network": True}
+    p2 = build_pipeline(run_id="run_phase3_network", extensions=ext_e)
+    p2.run(demo_input())
+    reg_e = p2.state.artifacts.get("S8", {}).get("registration", {})
+    net_ok = (len(reg_e.get("validates", [])) > 0
+              and len(reg_e.get("validated_by", [])) > 0)
+    print(f"[TEST-P3] E 系统关系网络: {'✓' if net_ok else '✗'} "
+          f"validates={len(reg_e.get('validates', []))} validated_by={len(reg_e.get('validated_by', []))}")
+    passed = passed and net_ok
+
+    # 场景 F：系统自动编排 —— 概念编排器（不运行真实系统，仅演示编排方案）
+    matrix = {
+        "sys_lit_review_001": {"domain": "学术研究", "paradigm_tags": ["信息论", "科研范式"]},
+        "sys_active_inference_001": {"domain": "认知", "paradigm_tags": ["主动推理", "控制论"]},
+        "sys_narrative_spectrum_001": {"domain": "文本", "paradigm_tags": ["叙事谱", "文本结构"]},
+    }
+    problem = "对四语文献做综述并评估其证据可信度"
+    orchestration = _concept_orchestrate(matrix, problem)
+    orch_ok = (orchestration.get("selected_systems") and orchestration.get("chain"))
+    print(f"[TEST-P3] F 系统自动编排: {'✓' if orch_ok else '✗'} "
+          f"链={'→'.join(orchestration.get('chain', []))}")
+    passed = passed and orch_ok
+
+    # 场景 G：扩展能力默认关闭（铁律验证）—— 不传 extensions 时动力学分支不生效
+    p4 = build_pipeline(run_id="run_phase3_default_off")
+    p4.run(demo_input())
+    hyb_g = p4.state.artifacts.get("S2", {}).get("hybridization", {})
+    default_off = hyb_g.get("branch") == "structure_hybrid"
+    print(f"[TEST-P3] G 扩展默认关闭: {'✓' if default_off else '✗'} "
+          f"branch={hyb_g.get('branch')}（铁律：扩展能力默认关闭）")
+    passed = passed and default_off
+
+    print(f"\n[TEST-P3] 阶段3验证: {'全部通过 ✓' if passed else '存在失败 ✗'}")
+    return 0 if passed else 1
+
+
+def _concept_orchestrate(matrix: dict[str, Any], problem: str) -> dict[str, Any]:
+    """阶段3概念编排器（场景 F）。
+
+    概念层：从矩阵中按"领域相关 + 依赖可解"选择系统并编排调用链。
+    不运行任何真实系统，仅输出编排方案（01 记忆匣阶段3【系统自动编排】）。
+    """
+    selected = []
+    if "综述" in problem or "文献" in problem:
+        selected.append("sys_lit_review_001")
+    if "证据" in problem or "可信度" in problem:
+        selected.append("sys_active_inference_001")
+        selected.append("sys_narrative_spectrum_001")
+    # 去重保序
+    chain = list(dict.fromkeys(selected))
+    return {
+        "problem": problem,
+        "selected_systems": chain,
+        "chain": chain,
+        "orchestration_note": (
+            "概念编排方案：综述系统产出结构化综述→主动推理系统评估证据置信度"
+            "→叙事谱系统校验文本结构完整性；概念层不执行真实调用"),
+    }
 
 
 if __name__ == "__main__":

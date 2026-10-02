@@ -19,7 +19,19 @@ cd src
 python3 main.py                # 跑通内置演示案例（跨语言文献综述辅助系统）
 python3 main.py --out demo.json  # 自定义交付包输出路径
 python3 main.py --test phase2    # 阶段2能力验证（主动澄清/常态化交叉验证/终止输出）
+python3 main.py --test phase3    # 阶段3扩展验证（动力学杂交/关系网络/自动编排/默认关闭）
 ```
+
+## 阶段能力状态
+
+| 阶段 | 能力 | 验证命令 | 状态 |
+|------|------|---------|------|
+| 阶段1 | 8步状态机/门控/回退/最短路径/完整性校验 | `python3 main.py` | ✅ |
+| 阶段2 | 交叉验证常态化/主动澄清/按需圆桌/P2项 | `--test phase2` | ✅ |
+| 阶段3 | 动力学等价杂交/关系网络/自动编排（默认关闭） | `--test phase3` | ✅ |
+
+阶段3扩展开关遵循"扩展能力默认关闭"铁律：
+`build_pipeline(run_id, extensions={...})` 显式开启才生效（见 `EXTENSIONS_DEFAULT`）。
 
 ## 骨架验证了什么（概念层）
 
@@ -35,6 +47,11 @@ python3 main.py --test phase2    # 阶段2能力验证（主动澄清/常态化�
    - 按需圆桌：match_confidence=low 时也触发 S2.5。
    - 长文本策略（P2-A3）：超长输入声明三段式处理。
    - 终止输出（P2-B4）：waiting_user 状态输出 原始输入+DNA草稿+终止确认。
+8. **阶段3能力（01 记忆匣阶段3【扩展开关】）**：
+   - 动力学等价杂交：`phase3_dynamics_hybrid` 开启时 hybrid_depth=dynamics，强制公理自洽检查+圆桌评审；未通过自动降级结构杂交。
+   - 系统关系网络：`phase3_relation_network` 开启时 S8 登记 validates/validated_by。
+   - 系统自动编排：`_concept_orchestrate()` 概念编排器输出调用链方案。
+   - 默认关闭铁律：`EXTENSIONS_DEFAULT` 全 False，`--test phase3` 场景 G 验证。
 
 ## 与设计文档的对应
 
