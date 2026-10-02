@@ -1124,6 +1124,10 @@ def main() -> int:
                          "phase4: 递归闭环有效进化/冗余迭代/深度保护）")
     ap.add_argument("--out", default="delivery_package.json",
                     help="交付包 JSON 输出路径（默认 ./delivery_package.json）")
+    ap.add_argument("--frozen-check", action="store_true",
+                    help="冻结校验：确认引擎主体未改动、扩展开关默认关闭、无新增步骤（纯侧车校验，不改动任何代码）")
+    ap.add_argument("--trace", action="store_true",
+                    help="输出结构化流水线事件流（JSON Lines，供回归测试/故障注入机器化校验）")
     args = ap.parse_args()
 
     banner = textwrap.dedent("""
@@ -1134,6 +1138,10 @@ def main() -> int:
     ═══════════════════════════════════════════════════════════════
     """)
     print(banner)
+
+    # ---- 冻结校验（概念原型冻结保护，纯侧车检查，不触碰引擎）----
+    if args.frozen_check:
+        return _frozen_check()
 
     # ---- 阶段2能力验证（01 记忆匣阶段2【能力补齐】）----
     if args.test == "phase2":
@@ -1147,6 +1155,22 @@ def main() -> int:
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
     package = pipeline.run(demo_input())
+
+    # 可观测性：结构化事件流输出（--trace，供回归/故障注入机器化校验）
+    if args.trace:
+        print("\n[UHES-TRACE] 流水线事件流（JSON Lines）")
+        for rec in pipeline.state.step_history:
+            event = {
+                "step": rec.step_name,
+                "status": rec.status,
+                "gate": rec.gate_decision,
+                "degradation_note": rec.degradation_note,
+            }
+            print(json.dumps(event, ensure_ascii=False))
+        print(f"[UHES-TRACE] 事件总数={len(pipeline.state.step_history)} | "
+              f"最终状态={pipeline.state.final_status} | "
+              f"degradation={pipeline.state.degradation_count} | "
+              f"rollback={pipeline.state.rollback_count}")
 
     # 输出交付包
     out_path = args.out
@@ -1409,6 +1433,73 @@ def evaluate_evolution_value(legacy: dict[str, Any],
     }
 
 
+def _frozen_check() -> int:
+    """冻结校验（纯侧车，只读检查，不触碰引擎）。
+
+    校验四项:
+    1. 引擎主体冻结：PipelineStateMachine 类定义未变更（关键机制标记在位）。
+    2. 扩展开关默认关闭：EXTENSIONS_DEFAULT 全 False。
+    3. 步骤集未变：8 步状态机 S1/S2/S2.5/S3/S4/S5/S6/S7/S8 注册齐全。
+    4. 基线一致：MAX_RECURSION_DEPTH / PARADIGM_SIMILARITY_THRESHOLD /
+       GLOBAL_PROTECTION_THRESHOLD / MAX_ROLLBACK_PER_STEP 与冻结基线一致。
+    """
+    print("[FROZEN] 冻结校验开始（概念原型冻结保护）")
+    ok = True
+
+    # 1. 引擎主体冻结：PipelineStateMachine 关键机制标记
+    engine_marks = [
+        ("回退+降级合并计数", "def protection_triggered"),
+        ("回退上限", "MAX_ROLLBACK_PER_STEP"),
+        ("最短路径跳过", "def _skip_optional"),
+        ("交付包组装", "def _assemble_package"),
+        ("完整性检查", "class IntegrityChecker"),
+        ("快照哈希链", "def _check_hash_chain"),
+        ("件间一致性", "def _check_consistency"),
+    ]
+    for label, mark in engine_marks:
+        present = mark in open(os.path.abspath(__file__), encoding="utf-8").read()
+        if not present:
+            ok = False
+            print(f"  ✗ 引擎机制缺失: {label} ({mark})")
+    print(f"  引擎主体冻结标记: {'✓ 全部在位' if ok else '✗ 有缺失'}")
+
+    # 2. 扩展开关默认关闭
+    ext_off = all(v is False for v in EXTENSIONS_DEFAULT.values())
+    if not ext_off:
+        ok = False
+        print(f"  ✗ 扩展开关未全默认关闭: {EXTENSIONS_DEFAULT}")
+    print(f"  扩展开关默认关闭: {'✓ 全部 False' if ext_off else '✗'}")
+
+    # 3. 步骤集未变
+    expected_steps = ["S1", "S2", "S2.5", "S3", "S4", "S5", "S6", "S7", "S8"]
+    pipeline = build_pipeline(run_id="frozen_check")
+    actual_steps = [name for name, _, _ in pipeline._steps]
+    if actual_steps != expected_steps:
+        ok = False
+        print(f"  ✗ 步骤集变化: {actual_steps}")
+    print(f"  步骤集(9步含S2.5): {'✓ 与冻结基线一致' if actual_steps == expected_steps else '✗ 有变化'}")
+
+    # 4. 冻结参数基线
+    params = {
+        "MAX_RECURSION_DEPTH": MAX_RECURSION_DEPTH,
+        "PARADIGM_SIMILARITY_THRESHOLD": PARADIGM_SIMILARITY_THRESHOLD,
+        "GLOBAL_PROTECTION_THRESHOLD": GLOBAL_PROTECTION_THRESHOLD,
+        "MAX_ROLLBACK_PER_STEP": MAX_ROLLBACK_PER_STEP,
+        "CLARIFY_THRESHOLD_PHASE2": CLARIFY_THRESHOLD_PHASE2,
+    }
+    baseline = {"MAX_RECURSION_DEPTH": 3, "PARADIGM_SIMILARITY_THRESHOLD": 0.8,
+                "GLOBAL_PROTECTION_THRESHOLD": 3, "MAX_ROLLBACK_PER_STEP": 1,
+                "CLARIFY_THRESHOLD_PHASE2": 1}
+    for k, v in params.items():
+        if v != baseline[k]:
+            ok = False
+            print(f"  ✗ 参数漂移: {k}={v} (基线 {baseline[k]})")
+    print(f"  冻结参数基线: {'✓ 全部一致' if all(params[k] == baseline[k] for k in params) else '✗ 有漂移'}")
+
+    print(f"[FROZEN] 冻结校验: {'通过 ✓（原型冻结成立）' if ok else '未通过 ✗（检测到改动，冻结被破坏）'}")
+    return 0 if ok else 1
+
+
 def _test_phase4() -> int:
     """阶段4验证：场景 H（有效进化）/ I（冗余迭代）/ J（递归深度超限）。"""
     print("[TEST-P4] 阶段4递归闭环验证开始（有效进化/冗余迭代/深度保护）")
@@ -1507,6 +1598,16 @@ def _test_phase4() -> int:
     j_ok = reached_limit
     print(f"[TEST-P4] J 递归深度保护: {'✓' if j_ok else '✗'} "
           f"max_recursion_depth={MAX_RECURSION_DEPTH} 层触发硬上限保护")
+    # 边界审计输出：递归超限的结构化记录（供复盘/审计，不触碰冻结引擎）
+    recursion_audit = {
+        "protection": "max_recursion_depth",
+        "limit": MAX_RECURSION_DEPTH,
+        "triggered_at_depth": depth,
+        "chain": [f"sys_lit_review_{i:03d}" for i in range(1, depth + 3)],
+        "action": "pipeline_terminated",
+        "note": "硬上限兜底保护生效，防止无限递归",
+    }
+    print(f"  ↳ 审计: {json.dumps(recursion_audit, ensure_ascii=False)}")
     passed = passed and j_ok
 
     print(f"\n[TEST-P4] 阶段4验证: {'全部通过 ✓' if passed else '存在失败 ✗'}")

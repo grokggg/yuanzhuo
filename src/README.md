@@ -21,6 +21,8 @@ python3 main.py --out demo.json  # 自定义交付包输出路径
 python3 main.py --test phase2    # 阶段2能力验证（主动澄清/常态化交叉验证/终止输出）
 python3 main.py --test phase3    # 阶段3扩展验证（动力学杂交/关系网络/自动编排/默认关闭）
 python3 main.py --test phase4    # 阶段4递归闭环验证（有效进化/冗余迭代/深度保护）
+python3 main.py --frozen-check   # 冻结校验（引擎未改/开关默认关/步骤集未变/参数基线）
+python3 main.py --trace          # 结构化事件流输出（JSON Lines，供回归机器化校验）
 ```
 
 ## 阶段能力状态
