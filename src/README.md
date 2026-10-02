@@ -24,6 +24,7 @@ python3 main.py --test phase4    # 阶段4递归闭环验证（有效进化/冗�
 python3 main.py --frozen-check   # 冻结校验（引擎未改/开关默认关/步骤集未变/参数基线）
 python3 main.py --trace          # 结构化事件流输出（JSON Lines，供回归机器化校验）
 # 第3项优化:杂交决策双通道(S2 LLM评审+确定性校验;设置 ZHIPU_API_KEY 启用真实LLM,无key自动降级确定性通道)
+# 第4项优化:蓝图生成LLM化(S4 智谱GLM生成蓝图,失败回退模板,open_issues自动同步CONS_01)
 # 第2项优化:范式匹配 embedding 化(S2 从 DNA.paradigm_hints 动态 n-gram 匹配,替代硬编码)
 ```
 

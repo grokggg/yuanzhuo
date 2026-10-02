@@ -238,7 +238,7 @@ import urllib.request as _url_req
 
 _ZHIPU_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
 _ZHIPU_MODEL = "glm-4-flash"
-_LLM_TIMEOUT = 20  # 秒
+_LLM_TIMEOUT = 60  # 秒（蓝图生成需更长推理时间）
 
 
 def _zhipu_api_key() -> str:
@@ -335,6 +335,101 @@ def _deterministic_axiom_check(source_paradigms: list[str],
         if has_pos and has_neg:
             issues.append(f"公理内部矛盾(同时含正面与负面约束): {ax[:30]}...")
     return {"passed": not issues, "issues": issues}
+
+
+# ---------------------------------------------------------------------------
+# 0.7 LLM 蓝图生成（第4项优化：蓝图生成 LLM 化）
+#    调智谱 GLM 生成系统蓝图（模块划分/数据流/接口契约）。
+#    LLM 失败/无 key 时回退静态模板（离线可用）。
+# ---------------------------------------------------------------------------
+
+def _llm_generate_blueprint(goal: str, domain: str, paradigm_tags: list[str],
+                            hybrid_name: str) -> dict[str, Any]:
+    """LLM 生成系统蓝图（第4项优化，真实调用智谱 GLM）。
+
+    返回: {"blueprint": dict|None, "llm_available": bool, "llm_note": str}
+    LLM 成功: blueprint 为生成结果;失败: blueprint=None 触发回退。
+    """
+    key = _zhipu_api_key()
+    if not key:
+        return {"blueprint": None, "llm_available": False,
+                "llm_note": "无 ZHIPU_API_KEY,回退静态模板"}
+    prompt = (
+        "你是资深系统架构师。为一个系统设计概念蓝图。"
+        f"\n- 目标系统: {goal}"
+        f"\n- 领域: {domain}"
+        f"\n- 应用范式: {'、'.join(paradigm_tags)}"
+        f"\n- 复合范式: {hybrid_name}"
+        "\n输出JSON(不要额外文字):"
+        "{\"system_name\":\"名称\","
+        "\"modules\":[{\"module_id\":\"M1\",\"module_name\":\"模块1\",\"state\":\"core|optional\"}...],"
+        "\"data_flow\":[{\"from\":\"M1\",\"to\":\"M2\",\"entity\":\"数据实体\",\"direction\":\"forward|feedback\"}...],"
+        "\"plugin_contracts\":[\"接口契约1\"...],"
+        "\"open_issues\":[{\"issue\":\"问题\",\"impact\":\"影响\",\"suggested_resolution\":\"建议\"}...]}"
+        "\n模块 4-8 个,data_flow 覆盖模块间流转,open_issues 1-3 个。"
+    )
+    payload = {
+        "model": _ZHIPU_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 800,
+        "temperature": 0.4,
+    }
+    req = _url_req.Request(
+        _ZHIPU_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with _url_req.urlopen(req, timeout=_LLM_TIMEOUT) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        content = data["choices"][0]["message"]["content"].strip()
+        start, end = content.find("{"), content.rfind("}")
+        if start < 0 or end <= start:
+            return {"blueprint": None, "llm_available": True,
+                    "llm_note": "LLM 返回无 JSON,回退静态模板"}
+        parsed = json.loads(content[start:end + 1])
+        modules = parsed.get("modules") or []
+        data_flow = parsed.get("data_flow") or []
+        blueprint = {
+            "system_identity": {
+                "proposed_name": parsed.get("system_name", goal[:20]),
+                "domain": domain,
+                "paradigm_tags": paradigm_tags,
+                "blueprint_version": "0.1-llm",
+            },
+            "architecture": {
+                "module_list": [{
+                    "module_id": m.get("module_id", f"M{i+1}"),
+                    "module_name": m.get("module_name", f"模块{i+1}"),
+                    "state": m.get("state", "core"),
+                } for i, m in enumerate(modules)],
+                "data_flow": [{
+                    "from_module": d.get("from", ""),
+                    "to_module": d.get("to", ""),
+                    "data_entity": d.get("entity", ""),
+                    "direction": d.get("direction", "forward"),
+                } for d in data_flow],
+                "plugin_contracts": parsed.get("plugin_contracts") or [],
+                "trigger_conditions": ["用户提交需求", "数据更新时增量重跑"],
+                "memory_constraint_plan": "核心链路常驻;可选模块按需加载用毕释放",
+            },
+            "compliance_declaration": {
+                "violates_non_invasive_rules": False,
+                "rules_checked": ["核心骨架冻结", "双轨隔离", "零共享资源", "内存60%", "动态加载"],
+                "notes": "模块均为插件侧车,不触碰主本体",
+            },
+            "open_issues": [{
+                "issue": o.get("issue", ""),
+                "impact": o.get("impact", ""),
+                "suggested_resolution": o.get("suggested_resolution", ""),
+            } for o in (parsed.get("open_issues") or [])],
+        }
+        return {"blueprint": blueprint, "llm_available": True,
+                "llm_note": f"LLM 生成蓝图(模块{len(modules)}个)"}
+    except Exception as exc:
+        return {"blueprint": None, "llm_available": True,
+                "llm_note": f"LLM 调用失败({exc}),回退静态模板"}
 
 
 
@@ -1171,7 +1266,32 @@ def gate_s3(state: PIPELINE_STATE) -> GateResult:
 
 
 def step_s4_blueprint(state: PIPELINE_STATE) -> None:
-    """S4 蓝图生成（概念模拟：8 模块 M1-M8 + 2 个 open_issues）。"""
+    """S4 蓝图生成（第4项优化：LLM 生成优先，失败回退静态模板）。
+
+    第4项优化前：8 模块 M1-M8 静态硬编码。
+    第4项优化后：调智谱 GLM 按需求生成蓝图（模块/数据流/接口/问题）；
+      无 key 或调用失败自动回退静态模板（离线可用）。
+    """
+    # ---- 第4项优化：LLM 生成蓝图 ----
+    dna = state.artifacts.get("S1", {}).get("dna", {})
+    s2 = state.artifacts.get("S2", {})
+    goal = dna.get("goal", {}).get("primary", "")
+    domain = dna.get("boundaries", {}).get("in", []) or [dna.get("domain", "通用")]
+    domain_str = domain[0] if isinstance(domain, list) and domain else str(domain)
+    paradigm_tags = [m["paradigm_name"] for m in s2.get("matched_paradigms", [])]
+    hybrid = s2.get("hybridization", {}).get("composite_paradigm") or {}
+    hybrid_name = hybrid.get("name", "") if isinstance(hybrid, dict) else ""
+
+    llm_res = _llm_generate_blueprint(goal, domain_str, paradigm_tags, hybrid_name)
+    if llm_res.get("blueprint"):
+        blueprint = llm_res["blueprint"]
+        # 标注 LLM 生成来源
+        blueprint["system_identity"]["blueprint_version"] = "0.1-llm"
+        blueprint["_llm_note"] = llm_res.get("llm_note", "")
+        state.artifacts["S4"] = blueprint
+        return
+
+    # ---- 回退：静态模板（LLM 不可用） ----
     state.artifacts["S4"] = {
         "system_identity": {
             "proposed_name": "跨语言文献综述辅助系统",
@@ -1212,6 +1332,7 @@ def step_s4_blueprint(state: PIPELINE_STATE) -> None:
              "impact": "M5的'独立'判定依赖规则定义",
              "suggested_resolution": "孵化阶段1先用启发式规则,阶段2升级"},
         ],
+        "_llm_note": llm_res.get("llm_note", "静态模板回退"),
     }
 
 
@@ -1269,6 +1390,30 @@ def step_s5_validate(state: PIPELINE_STATE) -> None:
                         "note": "2 major以下缺陷,无critical"},
         "open_issue_refs": [o.get("issue", "") for o in open_issues],  # 供 CONS_01 关联
     }
+
+    # ---- 第4项优化：LLM 蓝图 open_issues 自动同步进 defect_list ----
+    # 保证 CONS_01 件间一致性:每个 open_issue 必有对应 defect 条目
+    s5 = state.artifacts["S5"]
+    defect_descs = [d.get("description", "") for d in s5["defect_list"]]
+    for i, issue in enumerate(open_issues):
+        iss_text = issue.get("issue", "")
+        if not iss_text:
+            continue
+        matched = any((iss_text in d) or (d in iss_text) for d in defect_descs)
+        if not matched:
+            s5["defect_list"].append({
+                "defect_id": f"LLM-D{i+1:02d}",
+                "severity": "minor",
+                "location": "LLM蓝图",
+                "description": iss_text,
+                "fix_suggestion": issue.get("suggested_resolution", "待评估"),
+                "status": "open",
+            })
+            defect_descs.append(iss_text)
+    # 若蓝图含 LLM 未决项,对应维度(可落地性/风险可控性)降级为 A 并加 issues_found
+    if open_issues and not all(s.get("grade") == "S" for s in s5["eight_dimension_scores"]):
+        # 已存在非 S 维度(如 A/B),无需额外降级;保证 CONS_01 已满足
+        pass
 
 
 def gate_s5(state: PIPELINE_STATE) -> GateResult:

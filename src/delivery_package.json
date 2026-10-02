@@ -1,8 +1,8 @@
 {
   "package_meta": {
-    "run_id": "run_lit_review_demo",
+    "run_id": "run_knowledge_demo",
     "package_version": "1.0",
-    "generated_at": "2026-10-02T07:24:47+00:00",
+    "generated_at": "2026-10-02T07:43:27+00:00",
     "final_status": "completed",
     "degradation_records": [],
     "paradigm_catalog_version": "29组初始版",
@@ -279,7 +279,7 @@
           },
           "llm": {
             "llm_verdict": "approve",
-            "llm_reason": "The proposed hybrid paradigm combines linguistic and information theory in a way that is not just keyword-based, and the merging axioms are coherent, ensuring consistency and validity in the design.",
+            "llm_reason": "两范式机制通过机制迁移和信息论约束实现同构，合并公理自洽，且共同推论有效，因此设计合理。",
             "available": true
           },
           "decision": "hybrid_approved"
@@ -288,56 +288,57 @@
     },
     "03_system_blueprint": {
       "system_identity": {
-        "proposed_name": "跨语言文献综述辅助系统",
-        "domain": "学术研究",
+        "proposed_name": "Academic Literature Synthesis Assistant",
+        "domain": "通用",
         "paradigm_tags": [
-          "信息论",
-          "科研范式",
-          "语言学",
-          "复杂系统"
+          "语言学范式",
+          "信息论范式",
+          "复杂系统范式",
+          "系统论范式",
+          "科研范式"
         ],
-        "blueprint_version": "0.1"
+        "blueprint_version": "0.1-llm"
       },
       "architecture": {
         "module_list": [
           {
             "module_id": "M1",
-            "module_name": "文献接入",
-            "state": "core"
+            "module_name": "Language Detection and Translation",
+            "state": "core|optional"
           },
           {
             "module_id": "M2",
-            "module_name": "语义单元切分",
-            "state": "core"
+            "module_name": "Text Preprocessing",
+            "state": "core|optional"
           },
           {
             "module_id": "M3",
-            "module_name": "术语对齐",
-            "state": "core"
+            "module_name": "Information Extraction",
+            "state": "core|optional"
           },
           {
             "module_id": "M4",
-            "module_name": "证据抽取",
-            "state": "core"
+            "module_name": "Citation Analysis",
+            "state": "core|optional"
           },
           {
             "module_id": "M5",
-            "module_name": "证据冗余校验",
-            "state": "core"
+            "module_name": "Conclusion Synthesis",
+            "state": "core|optional"
           },
           {
             "module_id": "M6",
-            "module_name": "综述组装",
-            "state": "core"
+            "module_name": "Structural Formatting",
+            "state": "core|optional"
           },
           {
             "module_id": "M7",
-            "module_name": "验证门控",
-            "state": "core"
+            "module_name": "User Interface",
+            "state": "core|optional"
           },
           {
             "module_id": "M8",
-            "module_name": "交叉对照",
+            "module_name": "Feedback Loop",
             "state": "optional"
           }
         ],
@@ -345,55 +346,66 @@
           {
             "from_module": "M1",
             "to_module": "M2",
-            "data_entity": "语义单元",
+            "data_entity": "Translated Text",
             "direction": "forward"
           },
           {
             "from_module": "M2",
             "to_module": "M3",
-            "data_entity": "语义单元",
+            "data_entity": "Processed Text",
             "direction": "forward"
           },
           {
             "from_module": "M3",
             "to_module": "M4",
-            "data_entity": "语义单元",
+            "data_entity": "Extracted Information",
             "direction": "forward"
           },
           {
             "from_module": "M4",
             "to_module": "M5",
-            "data_entity": "语义单元",
+            "data_entity": "Citation Data",
             "direction": "forward"
           },
           {
             "from_module": "M5",
             "to_module": "M6",
-            "data_entity": "语义单元",
+            "data_entity": "Synthesized Conclusions",
             "direction": "forward"
           },
           {
             "from_module": "M6",
             "to_module": "M7",
-            "data_entity": "语义单元",
+            "data_entity": "Formatted Synthesis",
             "direction": "forward"
           },
           {
+            "from_module": "M7",
+            "to_module": "M8",
+            "data_entity": "User Feedback",
+            "direction": "feedback"
+          },
+          {
             "from_module": "M8",
-            "to_module": "M7",
-            "data_entity": "置信度",
+            "to_module": "M1",
+            "data_entity": "Updated Translation Parameters",
             "direction": "feedback"
           }
         ],
         "plugin_contracts": [
-          "M1-M8 均实现 handle_query(query, context)→result",
-          "各模块独立DB,零共享连接池"
+          "TranslationPluginContract",
+          "TextPreprocessingPluginContract",
+          "InformationExtractionPluginContract",
+          "CitationAnalysisPluginContract",
+          "ConclusionSynthesisPluginContract",
+          "StructuralFormattingPluginContract",
+          "UserInterfacePluginContract"
         ],
         "trigger_conditions": [
-          "用户提交综述请求",
-          "文献集更新时增量重跑M4-M7"
+          "用户提交需求",
+          "数据更新时增量重跑"
         ],
-        "memory_constraint_plan": "核心链路M1-M7常驻;M8按需加载用毕释放;术语表缓存为临时层"
+        "memory_constraint_plan": "核心链路常驻;可选模块按需加载用毕释放"
       },
       "compliance_declaration": {
         "violates_non_invasive_rules": false,
@@ -404,20 +416,26 @@
           "内存60%",
           "动态加载"
         ],
-        "notes": "M1-M8全部为插件侧车,不触碰主本体"
+        "notes": "模块均为插件侧车,不触碰主本体"
       },
       "open_issues": [
         {
-          "issue": "日语语义单元切分语料标注不足",
-          "impact": "M2在日语文档上精度预期低于其他语种",
-          "suggested_resolution": "阶段2补充日语文法规则集"
+          "issue": "Inconsistent translation quality across different languages",
+          "impact": "May lead to inaccuracies in information extraction",
+          "suggested_resolution": "Implement a multi-lingual quality assessment framework"
         },
         {
-          "issue": "冗余校验的独立锚点判定标准未量化",
-          "impact": "M5的'独立'判定依赖规则定义",
-          "suggested_resolution": "孵化阶段1先用启发式规则,阶段2升级"
+          "issue": "Limited coverage of citation sources",
+          "impact": "May miss important references",
+          "suggested_resolution": "Expand the citation database and incorporate more sources"
+        },
+        {
+          "issue": "User interface complexity",
+          "impact": "May hinder user adoption",
+          "suggested_resolution": "Simplify the user interface design and provide comprehensive documentation"
         }
-      ]
+      ],
+      "_llm_note": "LLM 生成蓝图(模块8个)"
     },
     "04_roundtable_report": {
       "session_meta": {
@@ -638,6 +656,30 @@
           "description": "日语语义单元切分语料标注不足",
           "fix_suggestion": "阶段2补充日语文法规则集",
           "status": "open"
+        },
+        {
+          "defect_id": "LLM-D01",
+          "severity": "minor",
+          "location": "LLM蓝图",
+          "description": "Inconsistent translation quality across different languages",
+          "fix_suggestion": "Implement a multi-lingual quality assessment framework",
+          "status": "open"
+        },
+        {
+          "defect_id": "LLM-D02",
+          "severity": "minor",
+          "location": "LLM蓝图",
+          "description": "Limited coverage of citation sources",
+          "fix_suggestion": "Expand the citation database and incorporate more sources",
+          "status": "open"
+        },
+        {
+          "defect_id": "LLM-D03",
+          "severity": "minor",
+          "location": "LLM蓝图",
+          "description": "User interface complexity",
+          "fix_suggestion": "Simplify the user interface design and provide comprehensive documentation",
+          "status": "open"
         }
       ],
       "gate_result": {
@@ -648,8 +690,9 @@
         "note": "2 major以下缺陷,无critical"
       },
       "open_issue_refs": [
-        "日语语义单元切分语料标注不足",
-        "冗余校验的独立锚点判定标准未量化"
+        "Inconsistent translation quality across different languages",
+        "Limited coverage of citation sources",
+        "User interface complexity"
       ],
       "cross_validation": {
         "executed": true,
@@ -801,33 +844,33 @@
         },
         {
           "artifact_id": "02",
-          "hash": "301921ddf997731a",
+          "hash": "55a79d65549cc6f2",
           "prev_hash": "6452c4a115fa7441"
         },
         {
           "artifact_id": "03",
-          "hash": "209e8589d2f863d1",
-          "prev_hash": "301921ddf997731a"
+          "hash": "0cbde9e4ae59aea7",
+          "prev_hash": "55a79d65549cc6f2"
         },
         {
           "artifact_id": "04",
-          "hash": "19b603c56461c53a",
-          "prev_hash": "209e8589d2f863d1"
+          "hash": "e4c117ae41e06a38",
+          "prev_hash": "0cbde9e4ae59aea7"
         },
         {
           "artifact_id": "05",
-          "hash": "3b9f2d34ef3608b1",
-          "prev_hash": "19b603c56461c53a"
+          "hash": "0087cc28fa54ea95",
+          "prev_hash": "e4c117ae41e06a38"
         },
         {
           "artifact_id": "06",
-          "hash": "ff95813bb573ccbf",
-          "prev_hash": "3b9f2d34ef3608b1"
+          "hash": "9a7ae0575f09d48d",
+          "prev_hash": "0087cc28fa54ea95"
         },
         {
           "artifact_id": "07",
-          "hash": "2456b893ddd8c932",
-          "prev_hash": "ff95813bb573ccbf"
+          "hash": "d496133ce9679a84",
+          "prev_hash": "9a7ae0575f09d48d"
         }
       ],
       "chain_integrity": true,
