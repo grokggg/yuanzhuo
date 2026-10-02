@@ -1,8 +1,8 @@
 {
   "package_meta": {
-    "run_id": "run_lit_review_demo",
+    "run_id": "run_knowledge_demo",
     "package_version": "1.0",
-    "generated_at": "2026-10-02T06:24:34+00:00",
+    "generated_at": "2026-10-02T06:33:12+00:00",
     "final_status": "completed",
     "degradation_records": [],
     "paradigm_catalog_version": "29组初始版",

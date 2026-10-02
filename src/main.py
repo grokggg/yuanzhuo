@@ -532,6 +532,54 @@ def demo_input() -> dict[str, Any]:
     }
 
 
+def demo_input_analytics() -> dict[str, Any]:
+    """业务案例1：数据分析平台（S1→S8 全链路演示）。
+
+    概念场景：电商运营团队需要一套会话式数据分析平台——自然语言提问、
+    自动生成图表、异常波动预警；必须可解释（每条结论带数据依据），
+    且要运行在轻量沙箱（不依赖商业 BI 服务）。
+    """
+    return {
+        "raw_requirement": (
+            "我们电商运营团队每天要看几十个维度的销售数据,手动拉数、做透视、"
+            "写结论,效率很低。想要一个会话式数据分析平台:用自然语言提问就能"
+            "得到聚合结果和图表,数据出现异常波动时主动预警。核心要求:每个结论"
+            "必须能追溯到具体数据切片,不能黑箱;系统要轻量,跑在临时沙箱,"
+            "不依赖商业BI服务;首次覆盖订单/流量/转化三个核心主题。"
+        ),
+        "context": {
+            "domain_hint": "数据分析",
+            "stakeholders": ["电商运营团队", "数据工程师"],
+            "existing_systems": [],
+            "success_metric_hint": "结论可解释性(每条结论带数据切片溯源) + 异常预警时效",
+        },
+    }
+
+
+def demo_input_knowledge() -> dict[str, Any]:
+    """业务案例2：知识管理 Agent（S1→S8 全链路演示）。
+
+    概念场景：咨询团队需要把分散在邮件/文档/会议纪要里的隐性知识沉淀为
+    可检索的图谱——自动抽取实体关系、维护版本、支持按主题召回；知识
+    必须保留来源与置信度，防止"二手结论"污染。
+    """
+    return {
+        "raw_requirement": (
+            "我们咨询团队的知识散落在邮件、项目文档、会议纪要里,新人上手慢,"
+            "老经验复用不上。想要一个知识管理Agent:自动从多来源抽取实体与关系,"
+            "构建可检索的知识图谱,支持按主题召回,并记录每条知识的来源文档和"
+            "置信度。核心约束:不覆盖历史版本,知识冲突时标记争议而非静默合并;"
+            "运行在沙箱,支持增量导入。"
+        ),
+        "context": {
+            "domain_hint": "知识管理",
+            "stakeholders": ["咨询团队", "知识管理员"],
+            "existing_systems": [],
+            "success_metric_hint": "知识召回完整率 + 来源可溯 + 版本不丢失",
+        },
+    }
+
+
 # ---------------------------------------------------------------------------
 # 6. 8 步插件侧车（概念模拟，对应 docs/10 第 2/3/4 部分）
 # ---------------------------------------------------------------------------
@@ -1116,8 +1164,9 @@ def build_pipeline(run_id: str,
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="UHES 范式演化设计师概念状态机骨架（示意代码）")
-    ap.add_argument("--case", default="lit_review", choices=["lit_review"],
-                    help="内置概念演示案例（当前仅 lit_review）")
+    ap.add_argument("--case", default="lit_review",
+                    choices=["lit_review", "analytics", "knowledge"],
+                    help="内置概念演示案例（lit_review 文献综述 / analytics 数据分析 / knowledge 知识管理）")
     ap.add_argument("--test", default=None, choices=["phase2", "phase3", "phase4"],
                     help="运行阶段能力验证场景（phase2: 主动澄清/常态化交叉验证/终止输出；"
                          "phase3: 动力学杂交/关系网络/自动编排；"
@@ -1154,7 +1203,12 @@ def main() -> int:
         return _test_phase4()
 
     pipeline = build_pipeline(run_id=f"run_{args.case}_demo")
-    package = pipeline.run(demo_input())
+    case_inputs = {
+        "lit_review": demo_input,
+        "analytics": demo_input_analytics,
+        "knowledge": demo_input_knowledge,
+    }
+    package = pipeline.run(case_inputs[args.case]())
 
     # 可观测性：结构化事件流输出（--trace，供回归/故障注入机器化校验）
     if args.trace:
