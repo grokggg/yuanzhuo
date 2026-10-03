@@ -35,8 +35,15 @@ MUTATIONS = [
 ]
 
 
-def run_mutations(module_dir: str = "src") -> dict[str, str]:
-    """运行全部变异,返回 {模块: 结果}。"""
+def run_mutations(module_dir: str = None) -> dict[str, str]:
+    """运行全部变异,返回 {模块: 结果}。
+
+    module_dir: 代码目录(默认自动探测: 测试文件在 src/tests/,代码在 src/)
+    """
+    if module_dir is None:
+        # 基于测试文件位置自动推断: tests/ 的上级是 src/
+        here = os.path.dirname(os.path.abspath(__file__))
+        module_dir = os.path.dirname(here)  # src/
     results: dict[str, str] = {}
     for mod, orig, mutant, killed_by in MUTATIONS:
         path = os.path.join(module_dir, mod)
@@ -49,10 +56,10 @@ def run_mutations(module_dir: str = "src") -> dict[str, str]:
                 results[mod] = f"SKIP(原始代码未找到: {orig[:40]})"
                 continue
             open(path, "w").write(src.replace(orig, mutant, 1))
-            # 跑测试
+            # 跑测试(用绝对路径,不依赖 cwd)
+            test_path = os.path.join(module_dir, "tests", "test_core_modules.py")
             proc = subprocess.run(
-                [sys.executable, "-m", "pytest",
-                 "src/tests/test_core_modules.py", "-q"],
+                [sys.executable, "-m", "pytest", test_path, "-q"],
                 capture_output=True, text=True, timeout=120)
             killed = proc.returncode != 0
             results[mod] = (
