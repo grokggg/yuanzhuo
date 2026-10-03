@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 UHES · 范式演化设计师 Agent —— 概念状态机骨架（示意代码）
 ============================================================
@@ -32,14 +31,14 @@ import json
 import os
 import sys
 import textwrap
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # 0. 常量与配置（概念层，不编造数字）
 # ---------------------------------------------------------------------------
-
 # ---- 第6项优化：矩阵持久化（SQLite，零共享资源铁律）----
 # 默认内存 dict（概念行为）；设置 UHES_MATRIX_DB 环境变量启用 SQLite 持久化。
 import matrix_store as _matrix_store
@@ -666,7 +665,7 @@ class GateResult:
     """门控判定结果（P2 门控收敛）。"""
     passed: bool
     reason: str = ""
-    fail_kind: Optional[str] = None  # clarification / constraint_conflict / paradigm_coverage / ...
+    fail_kind: str | None = None  # clarification / constraint_conflict / paradigm_coverage / ...
 
 
 @dataclass
@@ -675,8 +674,8 @@ class StepRecord:
     step_name: str
     status: str  # passed | failed | degraded | skipped
     gate_decision: str
-    degradation_note: Optional[str] = None
-    output_ref: Optional[str] = None
+    degradation_note: str | None = None
+    output_ref: str | None = None
 
 
 @dataclass
@@ -712,7 +711,7 @@ class PipelineStateMachine:
 
     def __init__(self, run_id: str, paradigm_catalog_version: str,
                  methodology_catalog_version: str,
-                 extensions: Optional[dict[str, bool]] = None) -> None:
+                 extensions: dict[str, bool] | None = None) -> None:
         self.state = PIPELINE_STATE(
             run_id=run_id,
             started_at=_now_iso(),
@@ -815,7 +814,7 @@ class PipelineStateMachine:
         print(f"  ≫ {step:<22} 跳过（最短路径保护）")
 
     def _record(self, step: str, status: str, gate_decision: str,
-                degradation_note: Optional[str] = None) -> None:
+                degradation_note: str | None = None) -> None:
         self.state.step_history.append(StepRecord(
             step_name=step, status=status, gate_decision=gate_decision,
             degradation_note=degradation_note,
@@ -951,7 +950,7 @@ class IntegrityChecker:
                     "03_system_blueprint", "04_roundtable_report",
                     "05_methodology_usage_record", "06_validation_report",
                     "07_incubation_plan"]
-        present = [k for k in expected if k in artifacts and artifacts[k]]
+        present = [k for k in expected if artifacts.get(k)]
         return {"expected": expected, "present": present,
                 "complete": len(present) == len(expected),
                 "note": "04件为跳过声明也算complete（契约恒为7件）"}
@@ -1051,7 +1050,7 @@ class IntegrityChecker:
         但注明在概念推演语境下仅作结构演示；C3 修复声明 normalization。
         """
         chain: list[dict] = []
-        prev_hash: Optional[str] = None
+        prev_hash: str | None = None
         ok = True
         for art in ARTIFACT_ORDER:
             key = f"{art}_" + [k for k in pkg.artifacts if k.startswith(art + "_")][0].split("_", 1)[1]
@@ -1562,7 +1561,7 @@ def gate_s3(state: PIPELINE_STATE) -> GateResult:
     recs = state.artifacts.get("S3", {}).get("recommended_set", [])
     if not recs:
         return GateResult(False, "推荐列表为空", "degrade")
-    return GateResult(True, f"4条方法论确认，模板已内联，无硬约束冲突")
+    return GateResult(True, "4条方法论确认，模板已内联，无硬约束冲突")
 
 
 def step_s4_blueprint(state: PIPELINE_STATE) -> None:
@@ -1959,7 +1958,7 @@ def gate_s8(state: PIPELINE_STATE) -> GateResult:
 # ---------------------------------------------------------------------------
 
 def build_pipeline(run_id: str,
-                   extensions: Optional[dict[str, bool]] = None) -> PipelineStateMachine:
+                   extensions: dict[str, bool] | None = None) -> PipelineStateMachine:
     p = PipelineStateMachine(
         run_id=run_id,
         paradigm_catalog_version="29组初始版",
@@ -2133,7 +2132,7 @@ def main() -> int:
           f"CONS_01={intg['cross_artifact_consistency']['passed']} | "
           f"哈希链={intg['snapshot_hash_chain']['chain_integrity']}")
 
-    if not intg.get("verdict") == "deliver":
+    if intg.get("verdict") != "deliver":
         print(f"[UHES] 阻断原因: {intg.get('block_reasons')}")
         return 1
     print("[UHES] 全链路通过，概念推演完成。")
@@ -2232,7 +2231,7 @@ def _test_phase3() -> int:
     }
     problem = "对四语文献做综述并评估其证据可信度"
     orchestration = _concept_orchestrate(matrix, problem)
-    orch_ok = (orchestration.get("selected_systems") and orchestration.get("chain"))
+    orch_ok = bool(orchestration.get("selected_systems") and orchestration.get("chain"))
     print(f"[TEST-P3] F 系统自动编排: {'✓' if orch_ok else '✗'} "
           f"链={'→'.join(orchestration.get('chain', []))}")
     passed = passed and orch_ok
@@ -2303,7 +2302,7 @@ _MATRIX_STORE: dict[str, dict[str, Any]] = {
 }
 
 
-def matrix_load_system(system_id: str) -> Optional[dict[str, Any]]:
+def matrix_load_system(system_id: str) -> dict[str, Any] | None:
     """阶段4：从系统关系矩阵读取已归档系统（S8 登记产物）。
 
     第6项优化：设置 UHES_MATRIX_DB 时走 SQLite 持久化读取（跨运行加载），

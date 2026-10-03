@@ -19,10 +19,8 @@
 
 from __future__ import annotations
 
-import json
-import os
 import sqlite3
-from typing import Any, Optional
+from typing import Any
 
 # 机制类型枚举（同构关系的本质分类）
 MECHANISM_TYPES = [
@@ -110,9 +108,9 @@ SEED_HOMOLOGIES: list[dict[str, Any]] = [
 class HomologyDB:
     """同构关系数据库（SQLite 持久化 + 内存兜底）。"""
 
-    def __init__(self, db_path: Optional[str] = None) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         self.db_path = db_path
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         if db_path:
             self._conn = sqlite3.connect(db_path)
             self._init_schema()
@@ -200,7 +198,7 @@ class HomologyDB:
             return [dict(zip(cols, r)) for r in rows]
         return [dict(h) for h in self._memory if h["mechanism_type"] == mechanism_type]
 
-    def query_between(self, a: str, b: str) -> Optional[dict[str, Any]]:
+    def query_between(self, a: str, b: str) -> dict[str, Any] | None:
         """查两范式之间的同构（任一方向）。"""
         for h in self.query_by_paradigm(a):
             if h["paradigm_b"] == b or h["paradigm_a"] == b:
@@ -240,7 +238,7 @@ class HomologyDB:
             self._conn = None
 
 
-def demo(db_path: Optional[str] = None) -> dict[str, Any]:
+def demo(db_path: str | None = None) -> dict[str, Any]:
     """演示：查询 + 推理。"""
     db = HomologyDB(db_path)
     result = {

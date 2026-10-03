@@ -20,14 +20,13 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from typing import Any, Optional
+from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import main as _main  # noqa: E402
+import main as _main
 
 # UHES 自我优化需求（把系统自己作为被设计对象）
 SELF_REQUIREMENT = (
@@ -56,7 +55,7 @@ def build_self_input() -> dict[str, Any]:
     }
 
 
-def run_self_optimize(db_path: Optional[str] = None,
+def run_self_optimize(db_path: str | None = None,
                       use_mock: bool = True,
                       rounds: int = 2,
                       verbose: bool = True) -> dict[str, Any]:
@@ -212,7 +211,7 @@ def _print_report(report: dict[str, Any]) -> None:
     vr = report["design"]["validation"]
     scores = vr.get("eight_dimension_scores", [])
     if scores:
-        print(f"\n  8维自评(圆桌视角):")
+        print("\n  8维自评(圆桌视角):")
         for s in scores:
             print(f"    {s.get('dimension')}: {s.get('grade')}")
     defects = vr.get("defect_list", [])

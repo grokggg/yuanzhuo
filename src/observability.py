@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 # 事件类型
 EVENT_PIPELINE_START = "pipeline_started"
@@ -52,7 +53,7 @@ class ObservabilityBus:
         self._observers.append(observer)
 
     # ---- 事件 ----
-    def record_event(self, event_type: str, payload: Optional[dict[str, Any]] = None) -> None:
+    def record_event(self, event_type: str, payload: dict[str, Any] | None = None) -> None:
         """记录一个事件（带时间戳与当前 span 上下文）。"""
         ev = {
             "event": event_type,
@@ -69,7 +70,7 @@ class ObservabilityBus:
                 pass  # 观察者异常不阻断主线
 
     # ---- Span 生命周期（上下文管理器）----
-    def span(self, name: str, attrs: Optional[dict[str, Any]] = None) -> "_SpanCtx":
+    def span(self, name: str, attrs: dict[str, Any] | None = None) -> _SpanCtx:
         """开启一个 span（支持 with 语法），自动记录开始/结束/耗时。"""
         self._span_seq += 1
         span_id = f"span_{self._span_seq}"
@@ -106,7 +107,7 @@ class ObservabilityBus:
         total = len(steps)
         degraded = sum(1 for e in self._events if e["event"] == EVENT_DEGRADE)
         rolled_back = sum(1 for e in self._events if e["event"] == EVENT_ROLLBACK)
-        step_stats = {}
+        step_stats: dict[str, dict[str, float]] = {}
         for s in steps:
             name = s["name"]
             d = step_stats.setdefault(name, {"count": 0, "total_ms": 0.0,
@@ -141,7 +142,6 @@ class ObservabilityBus:
 
     def export_span_tree(self) -> str:
         """导出 span 树（人类可读，含缩进层级与耗时）。"""
-        by_id = {s["span_id"]: s for s in self._spans}
         roots = [s for s in self._spans if s["parent"] is None]
         out = []
 

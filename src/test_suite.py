@@ -22,7 +22,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Any, Callable, Optional
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # LLM mock 层：模拟 _llm_parse_dna / _llm_review_hybrid / _llm_generate_blueprint /
@@ -326,6 +326,7 @@ def run_suite(use_mock: bool = True) -> dict[str, Any]:
 
         # 4. 持久化：MatrixStore 写读/版本链
         import tempfile
+
         import matrix_store as _ms
         db = os.path.join(tempfile.mkdtemp(), "suite_matrix.db")
         store = _ms.MatrixStore(db)
@@ -347,6 +348,7 @@ def run_suite(use_mock: bool = True) -> dict[str, Any]:
 
         # 6. 第12项：进化闭环真实执行（有效→登记新版本, 版本链 SQLite 持久化）
         import tempfile
+
         import evolution as _ev
         ev_db = os.path.join(tempfile.mkdtemp(), "suite_ev.db")
         engine = _ev.EvolutionEngine(db_path=ev_db)
@@ -369,7 +371,8 @@ def run_suite(use_mock: bool = True) -> dict[str, Any]:
         api_srv = _api.UHESApiServer(port=8767)
         api_srv.start()
         try:
-            import urllib.request as _url, json as _json
+            import json as _json
+            import urllib.request as _url
             req = _url.Request(
                 "http://127.0.0.1:8767/jobs",
                 data=_json.dumps({"case": "lit_review"}).encode(),

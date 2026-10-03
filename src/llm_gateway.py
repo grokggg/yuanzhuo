@@ -16,11 +16,11 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import os
 import urllib.request as _url_req
-from typing import Any, Optional
+from typing import Any
 
 # 智谱 API 配置（多通道）
 _ZHIPU_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
@@ -31,6 +31,7 @@ _MODEL_CHANNELS = [
     {"model": "glm-4-flash", "key_env": "ZHIPU_API_KEY_ALT"},
 ]
 _LLM_TIMEOUT = 60
+_CACHE_MAX = 200  # LLM 结果缓存上限(第20项优化) 
 
 
 class LLMGateway:
@@ -54,8 +55,8 @@ class LLMGateway:
             return dict(self._cache[key])
         result = fn()
         if self.use_cache and result:
-            # 缓存有界:最多 200 条
-            if len(self._cache) >= 200:
+            # 缓存有界:超过上限时淘汰最旧,直到回到上限内
+            while len(self._cache) >= _CACHE_MAX:
                 self._cache.pop(next(iter(self._cache)))
             self._cache[key] = dict(result)
         return result
@@ -71,7 +72,6 @@ class LLMGateway:
         按通道序尝试：主通道失败 → 备选通道；全部失败抛异常。
         同 prompt 命中缓存直接返回（降延迟省配额）。
         """
-        import hashlib
         channels = self._available_channels()
         if not channels:
             raise RuntimeError("无可用 LLM 通道（ZHIPU_API_KEY 未设置）")
@@ -83,7 +83,7 @@ class LLMGateway:
     def _chat_json_uncached(self, prompt: str, max_tokens: int,
                             temperature: float) -> dict[str, Any]:
         """未命中缓存的 JSON 调用（多通道容错）。"""
-        last_err: Optional[Exception] = None
+        last_err: Exception | None = None
         channels = self._available_channels()
         for ch in channels:
             try:
@@ -122,7 +122,7 @@ class LLMGateway:
     def chat_text(self, prompt: str, max_tokens: int = 300,
                   temperature: float = 0.3) -> str:
         """调用 LLM 返回原始文本（多通道容错）。"""
-        last_err: Optional[Exception] = None
+        last_err: Exception | None = None
         channels = self._available_channels()
         if not channels:
             raise RuntimeError("无可用 LLM 通道（ZHIPU_API_KEY 未设置）")

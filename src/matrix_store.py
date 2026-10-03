@@ -17,9 +17,8 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
-from typing import Any, Optional
+from typing import Any
 
 
 class MatrixStore:
@@ -87,7 +86,7 @@ class MatrixStore:
         finally:
             conn.close()
 
-    def load(self, system_id: str) -> Optional[dict[str, Any]]:
+    def load(self, system_id: str) -> dict[str, Any] | None:
         """按 system_id 读取记录（优先返回完整 payload 反序列化）。"""
         conn = self._connect()
         try:
@@ -113,4 +112,3 @@ class MatrixStore:
 
     def close(self) -> None:
         """关闭（SQLite 每次连接即关，此处保留接口兼容）。"""
-        pass

@@ -25,7 +25,7 @@ import sys
 import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Optional
+from typing import Any
 
 # 状态常量
 ST_QUEUED = "queued"
@@ -54,14 +54,14 @@ class UHESApiServer:
         self._jobs: dict[str, dict[str, Any]] = {}  # job_id -> job
         self._lock = threading.Lock()
         self._sem = threading.Semaphore(self.MAX_CONCURRENT)
-        self._httpd: Optional[ThreadingHTTPServer] = None
-        self._thread: Optional[threading.Thread] = None
+        self._httpd: ThreadingHTTPServer | None = None
+        self._thread: threading.Thread | None = None
 
     # ---- 任务管理 ----
     def submit(self, case: str = "lit_review",
-               raw: Optional[str] = None,
-               context: Optional[dict[str, Any]] = None,
-               iteration_of: Optional[str] = None) -> dict[str, Any]:
+               raw: str | None = None,
+               context: dict[str, Any] | None = None,
+               iteration_of: str | None = None) -> dict[str, Any]:
         """提交一个流水线任务，返回 job_id + 初始状态。
 
         第12项优化：iteration_of 非空时 = 进化任务（进化闭环真实执行）。
@@ -167,7 +167,7 @@ class UHESApiServer:
                 job["error"] = str(exc)
                 job["status"] = ST_FAILED
 
-    def get_job(self, job_id: str) -> Optional[dict[str, Any]]:
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
         """查询任务状态（不含完整包）。"""
         with self._lock:
             job = self._jobs.get(job_id)
@@ -185,7 +185,7 @@ class UHESApiServer:
                 "error": job["error"],
             }
 
-    def get_package(self, job_id: str) -> Optional[dict[str, Any]]:
+    def get_package(self, job_id: str) -> dict[str, Any] | None:
         """取交付包（仅 completed 时返回）。"""
         with self._lock:
             job = self._jobs.get(job_id)
@@ -202,7 +202,6 @@ class UHESApiServer:
         self._thread = threading.Thread(target=self._httpd.serve_forever,
                                         daemon=True)
         self._thread.start()
-        return
 
     def stop(self) -> None:
         """停止服务。"""
@@ -270,8 +269,8 @@ def run_server(port: int = 8765, host: str = "127.0.0.1") -> UHESApiServer:
     server = UHESApiServer(port=port, host=host)
     server.start()
     print(f"[UHES-API] 服务已启动: http://{host}:{port}/jobs")
-    print(f"[UHES-API] POST /jobs 提交 | GET /jobs/{{id}} 轮询 | "
-          f"GET /jobs/{{id}}/package 取包")
+    print("[UHES-API] POST /jobs 提交 | GET /jobs/{id} 轮询 | "
+          "GET /jobs/{id}/package 取包")
     try:
         while True:
             import time

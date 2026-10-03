@@ -13,7 +13,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from typing import Any
@@ -21,8 +20,8 @@ from typing import Any
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def run_both_modes(requirement: str = None,
-                   context: dict[str, Any] = None) -> dict[str, Any]:
+def run_both_modes(requirement: Optional[str] = None,
+                   context: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """跑 mock 与真实 LLM 两种模式,对比交付包一致性。"""
     import main as m
     import test_suite as _ts

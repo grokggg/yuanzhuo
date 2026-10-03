@@ -20,8 +20,7 @@ import json
 import os
 import sys
 import time
-import traceback
-from typing import Any, Optional
+from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -179,11 +178,11 @@ def run_all(count: int = 100, use_mock: bool = True,
     for r in results:
         for i in r["issues"]:
             issues[i] = issues.get(i, 0) + 1
-    domains_fail = {}
+    domains_fail: dict[str, int] = {}
     for r in results:
         if not r["pipeline_ok"]:
             domains_fail[r["domain"]] = domains_fail.get(r["domain"], 0) + 1
-    modes_fail = {}
+    modes_fail: dict[str, int] = {}
     for r in results:
         if not r["pipeline_ok"]:
             modes_fail[r["mode"]] = modes_fail.get(r["mode"], 0) + 1
@@ -214,7 +213,7 @@ if __name__ == "__main__":
     print(f"  成功率: {report['success_rate']} | 平均延迟: {report['avg_latency_ms']}ms")
     print(f"  失败领域: {report['fail_by_domain'] or '无'}")
     print(f"  失败模式: {report['fail_by_mode'] or '无'}")
-    print(f"  问题清单:")
+    print("  问题清单:")
     for issue, cnt in report["top_issues"]:
         print(f"    [{cnt}] {issue}")
     # 输出 JSON 供后续处理

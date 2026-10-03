@@ -19,15 +19,14 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from typing import Any, Optional
+from typing import Any
 
 # 引用 main 中的阶段4机制（不修改冻结引擎，纯侧车调用）
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import main as _main  # noqa: E402
+import main as _main
 
 # 递归深度保护（与阶段4基线一致）
 MAX_RECURSION_DEPTH = getattr(_main, "MAX_RECURSION_DEPTH", 3)
@@ -36,7 +35,7 @@ MAX_RECURSION_DEPTH = getattr(_main, "MAX_RECURSION_DEPTH", 3)
 class EvolutionEngine:
     """进化闭环引擎：矩阵版本管理 + 递归迭代真实执行。"""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: str | None = None):
         # 持久化：显式 db_path 时启用 SQLite（第6项机制复用），否则内存
         self.db_path = db_path
         if db_path:
@@ -59,7 +58,7 @@ class EvolutionEngine:
             ver = int(existing.get("version", "000") or 0) + 1
         return f"{ver:03d}"
 
-    def _load_latest(self, system_id: str) -> Optional[dict[str, Any]]:
+    def _load_latest(self, system_id: str) -> dict[str, Any] | None:
         """加载指定 system_id 的最新版本（含版本链追溯）。"""
         # 持久化优先
         if self.store is not None:
@@ -220,14 +219,14 @@ class EvolutionEngine:
             return []
         return rec.get("versions", [rec["system_id"]])
 
-    def load_version(self, system_id: str) -> Optional[dict[str, Any]]:
+    def load_version(self, system_id: str) -> dict[str, Any] | None:
         """加载指定版本。"""
         return self._load_latest(system_id)
 
 
 def run_evolution_demo(system_id: str = "sys_lit_review_001",
                        rounds: int = 2,
-                       db_path: Optional[str] = None,
+                       db_path: str | None = None,
                        use_mock: bool = True) -> dict[str, Any]:
     """演示入口：对种子系统跑递归进化。"""
     engine = EvolutionEngine(db_path=db_path)

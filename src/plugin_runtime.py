@@ -19,8 +19,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
-import sys
-from typing import Any, Callable, Optional
+from typing import Any
 
 # 契约：插件必须暴露的键
 _REQUIRED_META_KEYS = {"name", "step"}
@@ -106,7 +105,7 @@ class PluginRuntime:
 
     def load_dir(self) -> list[str]:
         """加载插件目录下全部 *.py（排除 __init__），返回成功加载名。"""
-        loaded = []
+        loaded: list[str] = []
         if not self.plugin_dir or not os.path.isdir(self.plugin_dir):
             return loaded
         for fn in sorted(os.listdir(self.plugin_dir)):

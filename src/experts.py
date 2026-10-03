@@ -18,10 +18,9 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from typing import Any, Optional
+from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -264,7 +263,8 @@ def run_roundtable(requirement: str,
             method_votes[method] = method_votes.get(method, 0) + 1
 
     # 方法论按票数排序
-    recommended_methods = sorted(method_votes, key=method_votes.get,
+    recommended_methods = sorted(method_votes,
+                                 key=lambda k: method_votes[k],
                                  reverse=True)[:5]
 
     # 3. 分歧检测（同一主题不同专家立场相反时标记）
