@@ -1,0 +1,53 @@
+name: UHES CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装依赖
+        run: |
+          pip install pytest
+          # 项目零第三方依赖(纯标准库)
+
+      - name: 语法编译检查
+        run: python -m compileall src/
+
+      - name: 单元测试(20 用例)
+        run: cd src && python3 -m pytest tests/test_core_modules.py -q
+
+      - name: LLM 快照测试(11 用例,锁结构契约)
+        run: cd src && python3 -m pytest tests/test_llm_snapshot.py -q
+
+      - name: 变异测试(4 变异,验证测试质量)
+        run: cd src && python3 tests/test_mutation.py
+
+      - name: 集成测试矩阵(14 用例)
+        run: cd src && python3 main.py --test suite
+
+      - name: 冻结校验(核心骨架未动)
+        run: cd src && python3 main.py --frozen-check
+
+      - name: 阶段 2/3/4 回归
+        run: |
+          cd src
+          python3 main.py --test phase2
+          python3 main.py --test phase3
+          python3 main.py --test phase4
+
+      - name: 用户压测(20 快速版)
+        run: cd src && python3 user_simulator.py --count 20
+
+      - name: 主流程全链路
+        run: cd src && python3 main.py
