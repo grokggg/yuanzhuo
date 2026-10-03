@@ -184,12 +184,16 @@ def _cosine_similarity(a: dict[str, float], b: dict[str, float]) -> float:
 
 
 def _embedding_match(dna: dict[str, Any]) -> dict[str, Any]:
-    """第2项优化：范式匹配 embedding 化（替代硬编码匹配）。
+    """第2项优化+真实化清单第2步：范式匹配 embedding 化。
 
     输入 DNA.paradigm_hints（如 ['语言学','信息论','科研范式']）,
     对范式库 29 组做 embedding 检索:每组范式关键词向量化,
-    与 DNA 线索向量计算余弦相似度,排序取 top-N,
+    与 DNA 线索向量计算相似度,排序取 top-N,
     按相似度映射 match_level(high/medium/low)。
+
+    双模式（真实化清单第2步）：
+    - 有 ZHIPU_API_KEY：真语义 embedding（智谱 embedding-2,1024维）
+    - 无 key：回退 n-gram 余弦（离线铁律,保持兼容）
 
     返回: matched_paradigms(动态) + match_confidence + embedding_notes
     """
@@ -198,34 +202,78 @@ def _embedding_match(dna: dict[str, Any]) -> dict[str, Any]:
         return {"matched_paradigms": [], "match_confidence": "low",
                 "embedding_note": "无 paradigm_hints,匹配降级为全库低置信扫描"}
 
-    # 需求线索向量 = 各 hint 文本 n-gram 向量加权平均
-    hint_vecs = [_ngram_vector(h) for h in hints if h]
-    if not hint_vecs:
+    # 真语义优先（真实化清单第2步）：调 semantic_embed 模块
+    try:
+        from semantic_embed import embed_text, _cosine as _sem_cosine
+        # 需求线索 = 各 hint 语义向量均值（有 key 真语义,无 key n-gram 回退）
+        hint_vecs_sem: list[tuple[list[float] | None, str]] = []
+        hint_vecs_ng: list[dict[str, float]] = []
+        for h in hints:
+            if not h:
+                continue
+            vec, mode = embed_text(h)
+            if mode == "semantic" and vec:
+                hint_vecs_sem.append((vec, mode))
+            else:
+                hint_vecs_ng.append(_ngram_vector(h))
+        use_semantic = len(hint_vecs_sem) >= 1
+    except ImportError:
+        use_semantic = False
+        hint_vecs_ng = [_ngram_vector(h) for h in hints if h]
+
+    if not use_semantic and not hint_vecs_ng:
         return {"matched_paradigms": [], "match_confidence": "low",
                 "embedding_note": "paradigm_hints 为空,无法匹配"}
-    query_vec: dict[str, float] = {}
-    for vec in hint_vecs:
-        for k, v in vec.items():
-            query_vec[k] = query_vec.get(k, 0.0) + v / len(hint_vecs)
 
-    # 对范式库逐组算相似度
     scored = []
-    for pid, meta in PARADIGM_CATALOG.items():
-        para_vec = _ngram_vector(meta["keywords"] + " " + meta["name"])
-        sim = _cosine_similarity(query_vec, para_vec)
-        scored.append((sim, pid, meta))
+    embed_note = "概念级 n-gram embedding 动态匹配(替代硬编码)"
+    if use_semantic:
+        # 真语义路径：需求向量 = hint 语义向量均值（纯标准库,零依赖铁律）
+        try:
+            qv = [0.0] * 1024
+            n = len(hint_vecs_sem)
+            for vec, _ in hint_vecs_sem:
+                for i, v in enumerate(vec):
+                    qv[i] += v / n
+            # 归一化
+            norm = math.sqrt(sum(x * x for x in qv)) or 1.0
+            qv = [x / norm for x in qv]
+            for pid, meta in PARADIGM_CATALOG.items():
+                pvec, pmode = embed_text(meta["keywords"] + " " + meta["name"])
+                if pmode != "semantic" or not pvec:
+                    continue  # 该范式回退 n-gram（下面统一处理）
+                sim = _sem_cosine(qv, pvec)
+                scored.append((sim, pid, meta, "semantic"))
+            embed_note = "真语义 embedding(智谱 embedding-2)动态匹配"
+        except Exception:
+            use_semantic = False
+            scored = []
+
+    if not use_semantic or not scored:
+        # 回退 n-gram 路径（原实现）
+        hint_vecs = hint_vecs_ng or [_ngram_vector(h) for h in hints if h]
+        query_vec: dict[str, float] = {}
+        for vec in hint_vecs:
+            for k, v in vec.items():
+                query_vec[k] = query_vec.get(k, 0.0) + v / len(hint_vecs)
+        for pid, meta in PARADIGM_CATALOG.items():
+            para_vec = _ngram_vector(meta["keywords"] + " " + meta["name"])
+            sim = _cosine_similarity(query_vec, para_vec)
+            scored.append((sim, pid, meta, "ngram"))
+
     scored.sort(key=lambda x: x[0], reverse=True)
 
     # top-N(取 5)按相似度映射等级
     top = scored[:5]
     matched = []
-    for sim, pid, meta in top:
+    for item in top:
+        sim, pid, meta, mode = item
         level = "high" if sim >= 0.25 else ("medium" if sim >= 0.15 else "low")
         matched.append({
             "paradigm_id": pid,
             "paradigm_name": meta["name"],
             "match_level": level,
-            "match_rationale": f"embedding 相似度 {sim:.3f}(n-gram 向量余弦)",
+            "match_rationale": f"embedding 相似度 {sim:.3f}({'语义' if mode == 'semantic' else 'n-gram'} 向量余弦)",
             "axiom_coverage_note": "中" if level != "low" else "低",
             "contradictions": [],
             "embedding_similarity": round(sim, 3),
@@ -236,7 +284,7 @@ def _embedding_match(dna: dict[str, Any]) -> dict[str, Any]:
     return {
         "matched_paradigms": matched,
         "match_confidence": confidence,
-        "embedding_note": "概念级 n-gram embedding 动态匹配(替代硬编码)",
+        "embedding_note": embed_note,
     }
 
 

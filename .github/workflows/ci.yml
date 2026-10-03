@@ -30,6 +30,9 @@ jobs:
       - name: LLM 快照测试(11 用例,锁结构契约)
         run: cd src && python3 -m pytest tests/test_llm_snapshot.py -q
 
+      - name: 语义 Embedding 测试(7 用例,双模式契约)
+        run: cd src && python3 -m pytest tests/test_semantic_embed.py -q
+
       - name: 变异测试(4 变异,验证测试质量)
         run: cd src && python3 tests/test_mutation.py
 
