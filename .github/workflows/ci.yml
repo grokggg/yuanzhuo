@@ -33,6 +33,9 @@ jobs:
       - name: 语义 Embedding 测试(7 用例,双模式契约)
         run: cd src && python3 -m pytest tests/test_semantic_embed.py -q
 
+      - name: API 鉴权测试(5 用例,401 保护契约)
+        run: cd src && python3 -m pytest tests/test_api_auth.py -q
+
       - name: 变异测试(4 变异,验证测试质量)
         run: cd src && python3 tests/test_mutation.py
 

@@ -215,6 +215,18 @@ class UHESApiServer:
             def log_message(self, fmt, *args):
                 pass  # 静默（避免刷屏）
 
+            def _check_auth(self) -> bool:
+                """鉴权校验：若配置了 UHES_API_KEY 则要求 X-API-Key 匹配。
+
+                未配置 key = 本地开发模式，放行（兼容现有行为）。
+                配置 key = 必须带正确 X-API-Key，否则 401。
+                """
+                expected = os.environ.get("UHES_API_KEY", "").strip()
+                if not expected:
+                    return True  # 未启用鉴权（本地模式）
+                provided = self.headers.get("X-API-Key", "")
+                return provided == expected
+
             def _send(self, code: int, obj: dict[str, Any]) -> None:
                 body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
                 self.send_response(code)
@@ -224,6 +236,9 @@ class UHESApiServer:
                 self.wfile.write(body)
 
             def do_POST(self):
+                if not self._check_auth():
+                    self._send(401, {"error": "unauthorized", "hint": "需 X-API-Key 请求头（配置 UHES_API_KEY 后生效）"})
+                    return
                 if self.path != "/jobs":
                     self._send(404, {"error": "not_found"})
                     return
@@ -243,6 +258,9 @@ class UHESApiServer:
                 self._send(202, result)
 
             def do_GET(self):
+                if not self._check_auth():
+                    self._send(401, {"error": "unauthorized", "hint": "需 X-API-Key 请求头（配置 UHES_API_KEY 后生效）"})
+                    return
                 # /jobs/{id} 或 /jobs/{id}/package
                 parts = self.path.strip("/").split("/")
                 if len(parts) == 2 and parts[0] == "jobs":
