@@ -1,6 +1,0 @@
-[tool.mutmut]
-paths_to_mutate = ["src/llm_gateway.py", "src/homology.py", "src/paradigms.py", "src/experts.py", "src/observability.py"]
-pytest_add_cli_args_test_selection = ["/tmp/uhes_mut/src/tests/test_core_modules.py"]
-runner = "python -m pytest"
-use_coverage = true
-debug = true
