@@ -135,22 +135,69 @@ PARADIGM_EXPERT_MAP: dict[str, list[str]] = {
     "人类学": ["E32"], "现象学": ["E42"], "博弈论": ["E41"],
 }
 
-# 专家 LLM 推演提示词模板（固定三部分输出）
-EXPERT_PROMPT_TEMPLATE = """你是{discipline}领域的专家「{name}」，正在参加跨学科系统设计圆桌会议。
-请从你的学科视角，评审以下系统需求与初步设计：
+# 专家独立人格（真实化清单第4步）：42 位专家的独特批判风格/关注点/论证习惯。
+# 每位专家的 LLM 推演由此差异化（不再共用同一模板输出趋同）。
+PERSONAS: dict[str, dict[str, str]] = {
+    "E01": {"style": "严格证明导向", "focus": "先问定义是否完备、定理是否可证,警惕直觉跳跃"},
+    "E02": {"style": "离散结构敏感", "focus": "关注素数/编码/模运算类比的适用性,反对模糊连续化"},
+    "E03": {"style": "证据强度导向", "focus": "先问样本是否代表性、结论是否过拟合,警惕小样本断言"},
+    "E04": {"style": "悖论猎手", "focus": "专找循环论证、偷换前提、概念滑移,要求形式化表达"},
+    "E05": {"style": "守恒对称直觉", "focus": "先找守恒量和不变量,警惕无边界条件的断言"},
+    "E06": {"style": "相变视角", "focus": "关注序参量、对称性破缺,警惕忽略临界条件的类比"},
+    "E07": {"style": "熵增警钟", "focus": "任何系统先问耗散与不可逆,反对永动机式设计"},
+    "E08": {"style": "不确定性敏感", "focus": "警惕过度确定论,关注观测干扰与互补性"},
+    "E09": {"style": "稳态适应视角", "focus": "关注系统稳态与适应成本,警惕忽视环境约束"},
+    "E10": {"style": "可塑性视角", "focus": "关注学习机制与突触可塑性,警惕刚性固定设计"},
+    "E11": {"style": "生态位思维", "focus": "关注共生与竞争平衡,警惕单一物种式垄断设计"},
+    "E12": {"style": "选择压力分析", "focus": "先问选择压力是什么、变异来源何处,反对设计论"},
+    "E13": {"style": "复杂度意识", "focus": "先问算法复杂度与抽象层次,警惕不可判定问题"},
+    "E14": {"style": "工程落地派", "focus": "先问可维护性/测试性/接口稳定性,反对过度设计"},
+    "E15": {"style": "泛化怀疑者", "focus": "关注过拟合与分布偏移,警惕训练集自证"},
+    "E16": {"style": "熵与信道视角", "focus": "先问信息损失与信道容量,警惕无损神话"},
+    "E17": {"style": "结构功能视角", "focus": "关注权力结构与角色规范,警惕个体主义还原"},
+    "E18": {"style": "激励分析派", "focus": "先问激励结构,警惕免费午餐假设"},
+    "E19": {"style": "权力制衡视角", "focus": "关注制度设计与集体行动困境,警惕乌托邦设计"},
+    "E20": {"style": "认知偏差猎人", "focus": "关注动机与认知偏差,警惕理性人假设"},
+    "E21": {"style": "语义精确派", "focus": "先问术语定义与语用边界,警惕概念混用"},
+    "E22": {"style": "第一性追问者", "focus": "先问本体论预设,警惕未经审视的假设"},
+    "E23": {"style": "因果溯源派", "focus": "先问历史先例与路径依赖,警惕无史类比"},
+    "E24": {"style": "形式审美视角", "focus": "关注形式与符号表达,警惕纯功能主义"},
+    "E25": {"style": "全生命周期派", "focus": "先问需求追溯与验证闭环,警惕局部最优"},
+    "E26": {"style": "反馈回路视角", "focus": "先问反馈机制与稳定性,警惕开环设计"},
+    "E27": {"style": "公差精度派", "focus": "关注制造可行性与公差累积,警惕理想几何"},
+    "E28": {"style": "信号噪声视角", "focus": "先问信噪比与带宽,警惕理想无噪假设"},
+    "E29": {"style": "元方法仲裁者", "focus": "统筹跨学科方法,警惕方法论堆砌,要求可操作"},
+    "E30": {"style": "涌现非线性视角", "focus": "先问涌现条件与非线性反馈,警惕线性外推"},
+    "E31": {"style": "变易辩证视角", "focus": "关注阴阳转化与周期律,警惕静态最优"},
+    "E32": {"style": "文化相对派", "focus": "关注语境与文化差异,警惕普适假设"},
+    "E33": {"style": "规则先例派", "focus": "先问规则明确性与先例一致性,警惕原则模糊"},
+    "E34": {"style": "发展建构视角", "focus": "关注最近发展区与反馈评估,警惕灌输设计"},
+    "E35": {"style": "不变量思维", "focus": "先问拓扑不变量与连续变换,警惕形状依赖"},
+    "E36": {"style": "吸引子视角", "focus": "先问长期行为与稳定性,警惕瞬态结论"},
+    "E37": {"style": "心智表征视角", "focus": "关注表征与计算,警惕无认知约束设计"},
+    "E38": {"style": "形态发生视角", "focus": "关注分化与调控,警惕一步到位设计"},
+    "E39": {"style": "可证伪裁判", "focus": "先问假设可证伪性与复现性,警惕不可验证断言"},
+    "E40": {"style": "概念考古派", "focus": "追概念谱系与话语演变,警惕无源概念"},
+    "E41": {"style": "策略互动视角", "focus": "先问参与者激励与均衡,警惕单方最优"},
+    "E42": {"style": "本质直观派", "focus": "悬置预设回到事物本身,警惕概念先行"},
+}
 
+# 专家 LLM 推演提示词模板（真实化清单第4步：注入独立人格，差异化输出）
+EXPERT_PROMPT_TEMPLATE = """你是{discipline}领域的专家「{name}」，正在参加跨学科系统设计圆桌会议。
+你的批判风格：{style}。
+你关注：{focus}。
+
+请从你的学科视角 + 个人批判风格，评审以下系统需求与初步设计：
 【需求】
 {requirement}
-
 【范式线索】
 {paradigm_hints}
-
 【初步设计】
 {design_summary}
 
 请严格按三部分输出（JSON）：
-1. strengths: 本学科视角下该设计的优势点（2-3条，每条一句话）
-2. weaknesses: 本学科视角下发现的漏洞/矛盾/反例（2-3条，每条一句话）
+1. strengths: 本学科视角下该设计的优势点（2-3条，每条一句话，体现你的风格）
+2. weaknesses: 本学科视角下发现的漏洞/矛盾/反例（2-3条，每条一句话，体现你的关注点）
 3. methods: 你推荐的分析方法论（1-2个，从你的方法论偏好中选）
 
 要求：只输出 JSON，不要多余文字。"""
@@ -188,6 +235,8 @@ class ExpertPanel:
             return self._mock_deliberate(expert, design_summary)
         prompt = EXPERT_PROMPT_TEMPLATE.format(
             discipline=expert["discipline"], name=expert["name"],
+            style=PERSONAS.get(expert["id"], {}).get("style", "批判性分析"),
+            focus=PERSONAS.get(expert["id"], {}).get("focus", "关注设计与需求的一致性"),
             requirement=requirement[:500],
             paradigm_hints="、".join(hints),
             design_summary=design_summary[:500])
@@ -207,12 +256,24 @@ class ExpertPanel:
 
     def _mock_deliberate(self, expert: dict[str, Any],
                          design_summary: str) -> dict[str, Any]:
-        """离线降级：基于专家视角模板生成结构化输出（可重复）。"""
+        """离线降级：基于专家独立人格生成差异化输出（真实化清单第4步）。
+
+        每位专家按 persona.style/focus 产出独特观点（不再共用模板趋同）。
+        """
+        persona = PERSONAS.get(expert["id"], {})
+        style = persona.get("style", "批判性分析")
+        focus = persona.get("focus", "关注设计与需求的一致性")
         return {
             "expert_id": expert["id"], "expert_name": expert["name"],
             "discipline": expert["discipline"],
-            "strengths": [f"{expert['perspective']}视角:设计结构清晰"],
-            "weaknesses": [f"{expert['perspective']}视角:需补充细节验证"],
+            "strengths": [
+                f"{style}:设计结构清晰,符合{expert['name']}学科原则",
+                f"{focus}:此设计在{expert['discipline']}框架下有明确位置",
+            ],
+            "weaknesses": [
+                f"{style}:未充分验证{expert['name']}学科关键属性",
+                f"{focus}:需补充{expert['discipline']}视角的细节论证",
+            ],
             "methods": expert["methods"][:2],
             "llm_available": False,
         }
