@@ -106,7 +106,10 @@ SEED_HOMOLOGIES: list[dict[str, Any]] = [
 
 
 class HomologyDB:
-    """同构关系数据库（SQLite 持久化 + 内存兜底）。"""
+    """同构关系数据库（SQLite 持久化 + 内存兜底）。
+
+    真实化清单第5步：从 15 对种子扩到全量（机制类型模板生成 + 诚实标注）。
+    """
 
     def __init__(self, db_path: str | None = None) -> None:
         self.db_path = db_path
@@ -115,10 +118,12 @@ class HomologyDB:
             self._conn = sqlite3.connect(db_path)
             self._init_schema()
             self._seed_if_empty()
+            self._expand_full_if_sparse()
         self._memory: list[dict[str, Any]] = []
         self._memory_index: dict[str, list[dict[str, Any]]] = {}
         if not db_path:
             self._load_seed_memory()
+            self._expand_full_memory()
 
     def _init_schema(self) -> None:
         assert self._conn is not None
@@ -151,6 +156,90 @@ class HomologyDB:
 
     def _load_seed_memory(self) -> None:
         self._memory = [dict(h) for h in SEED_HOMOLOGIES]
+        self._rebuild_index()
+
+    # ---- 全量扩展（真实化清单第5步） ----
+    # 机制类型 × 范式亲缘规则（基于学科真实对应，诚实标注生成来源）
+    MECHANISM_AFFINITY: dict[str, tuple[list[str], str]] = {
+        "information_flow": (
+            ["信息论", "语言学", "科研范式", "认知科学", "神经科学",
+             "人工智能", "心理学", "教育", "控制论", "复杂系统"],
+            "信息传递=噪声信道→冗余纠错/过滤机制"),
+        "feedback_loop": (
+            ["控制论", "系统论", "生态学", "经济学", "社会学",
+             "神经科学", "心理学", "软件工程", "系统工程"],
+            "负反馈稳态=调节回路机制"),
+        "state_transition": (
+            ["动力学", "量子力学", "热力学", "进化论", "胚胎发育",
+             "生态学", "凝聚态物理"],
+            "状态演化=转移算符机制"),
+        "constraint_optimization": (
+            ["热力学", "经济学", "信息论", "进化论", "生态学",
+             "系统工程", "凝聚态物理"],
+            "约束下极值=自由能/效用最小化机制"),
+        "hierarchy_emergence": (
+            ["复杂系统", "社会学", "神经科学", "生态学", "胚胎发育",
+             "认知科学", "政治学", "凝聚态物理"],
+            "微观互动→宏观涌现=层次生成机制"),
+        "selection_adaptation": (
+            ["进化论", "经济学", "认知科学", "生态学", "心理学",
+             "政治学", "教育", "人工智能"],
+            "选择压力→适应=变异筛选机制"),
+        "network_structure": (
+            ["网络科学", "神经科学", "社会学", "生态学", "信息论",
+             "复杂系统", "心理学", "经济学"],
+            "连接拓扑→功能=网络结构机制"),
+    }
+
+    def _generate_full(self) -> list[dict[str, Any]]:
+        """机制类型模板生成全量同构（范式亲缘规则，诚实标注来源）。"""
+        from paradigms import PARADIGM_CATALOG
+        all_paradigms = list(PARADIGM_CATALOG.keys())
+        generated: list[dict[str, Any]] = []
+        seen: set[tuple[str, str, str]] = set()
+
+        for mech, (group, mech_desc) in self.MECHANISM_AFFINITY.items():
+            # 组内两两配对
+            for i in range(len(group)):
+                for j in range(i + 1, len(group)):
+                    a, b = group[i], group[j]
+                    if a not in all_paradigms or b not in all_paradigms:
+                        continue
+                    key = (a, b, mech)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    generated.append({
+                        "paradigm_a": a, "paradigm_b": b,
+                        "mechanism_type": mech,
+                        "depth": "medium",  # 模板生成默认 medium（诚实：非人工深审）
+                        "source": f"机制类型模板生成:{mech_desc}",
+                        "evidence": "模板生成(待人工审核)",
+                    })
+        return generated
+
+    def _expand_full_if_sparse(self) -> None:
+        """SQLite 模式：若库过稀（<100 对）则全量扩展。"""
+        assert self._conn is not None
+        count = self._conn.execute("SELECT COUNT(*) FROM homologies").fetchone()[0]
+        if count < 100:
+            for h in self._generate_full():
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO homologies "
+                    "(paradigm_a, paradigm_b, mechanism_type, depth, source, evidence) "
+                    "VALUES (?,?,?,?,?,?)",
+                    (h["paradigm_a"], h["paradigm_b"], h["mechanism_type"],
+                     h["depth"], h["source"], h["evidence"]))
+            self._conn.commit()
+
+    def _expand_full_memory(self) -> None:
+        """内存模式：全量扩展（种子 + 生成）。"""
+        existing = {(h["paradigm_a"], h["paradigm_b"], h["mechanism_type"])
+                    for h in self._memory}
+        for h in self._generate_full():
+            key = (h["paradigm_a"], h["paradigm_b"], h["mechanism_type"])
+            if key not in existing:
+                self._memory.append(dict(h))
         self._rebuild_index()
 
     def _rebuild_index(self) -> None:

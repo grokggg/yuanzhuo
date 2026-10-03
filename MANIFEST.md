@@ -1,10 +1,10 @@
-# UHES MANIFEST（真实化清单第4步后）
+# UHES MANIFEST（真实化清单第5步后）
 
 
 | 文件 | SHA256 |
 |------|--------|
 | .gitignore | 89f376f1962d |
-| MANIFEST.md | a05b4bc62b83 |
+| MANIFEST.md | af8c5797c813 |
 | README.md | 5de4e42bba25 |
 | docs/01-记忆匣提示词.md | bb8c1372e0fd |
 | docs/02-版本演化时间线.md | fdac05645a15 |
@@ -28,7 +28,7 @@
 | docs/20-最终全貌报告.md | 0954daa0e813 |
 | docs/21-圆桌专家审议自我优化.md | 45f48960851e |
 | docs/22-100用户压力模拟.md | 3c901ae4d1ad |
-| .github/workflows/ci.yml | e4ffc5b8dfbf |
+| .github/workflows/ci.yml | c54e6a79057d |
 | src/README.md | 2a5a21bbbd9c |
 | src/agents.py | b20363222bc1 |
 | src/api_server.py | 9289f2fecac0 |
@@ -36,7 +36,7 @@
 | src/delivery_package.json | d88f30e8d0b4 |
 | src/evolution.py | 7bb265b08398 |
 | src/experts.py | 4dcef8bd74ab |
-| src/homology.py | 2191324f09a3 |
+| src/homology.py | 1da6aa12c065 |
 | src/llm_gateway.py | ca77079570d1 |
 | src/main.py | 4580f106b644 |
 | src/matrix_store.py | 7af4503c8421 |
@@ -52,6 +52,7 @@
 | src/tests/test_api_auth.py | abfabe374c6a |
 | src/tests/test_core_modules.py | 3dda578c5bd4 |
 | src/tests/test_expert_persona.py | 2da03ab615c4 |
+| src/tests/test_homology_full.py | af367483f5f2 |
 | src/tests/test_llm_snapshot.py | f40315eaea12 |
 | src/tests/test_mutation.py | 9e6a42b69fd3 |
 | src/tests/test_semantic_embed.py | fdeb8f0ebd82 |

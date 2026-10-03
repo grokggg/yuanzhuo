@@ -39,6 +39,9 @@ jobs:
       - name: 专家人格测试(5 用例,42 人格差异化契约)
         run: cd src && python3 -m pytest tests/test_expert_persona.py -q
 
+      - name: 同构全量测试(7 用例,185 对落库契约)
+        run: cd src && python3 -m pytest tests/test_homology_full.py -q
+
       - name: 变异测试(4 变异,验证测试质量)
         run: cd src && python3 tests/test_mutation.py
 
