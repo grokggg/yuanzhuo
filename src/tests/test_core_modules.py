@@ -64,7 +64,8 @@ class TestLLMGateway:
             gw._cache[f"key{i}"] = {"v": i}
         # 再调用 _cached_or 触发淘汰检查
         gw._cached_or("new_key", lambda: {"ok": True})
-        assert len(gw._cache) <= 200
+        import llm_gateway as lg
+        assert len(gw._cache) <= lg._CACHE_MAX  # 变异 200→100 时应变红
 
 
 # ---------------------------------------------------------------------------

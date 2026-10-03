@@ -1,17 +1,21 @@
 # UHES 交付清单(MANIFEST)
 
-> 冻结原型 + LLM 真实引擎 + 工程级迭代 + 用户压测 + 反馈优化 + 工程化收尾
+> 冻结原型 + LLM 引擎 + 测试金字塔 + 变异/快照测试
 >
-> 基线提交: 待更新(第21项提交后)
-> 文件数: 48
+> 基线提交: 待更新(第23项提交后)
+> 文件数: 76
 
 ## 文件清单(SHA256)
 
 | 文件 | SHA256 |
 |------|--------|
-| `./.github/workflows/ci.yml` | `0b360cc6ad278dd8896c51ea0b3b5ce8807f1e13b602d529163653ee7f6d0d4c` |
 | `./.gitignore` | `89f376f1962d0403233ced1f6b58ecf06f590d8b2004b5b66e8e69fb94fcabb0` |
-| `./MANIFEST.md` | `cc1698b8b322da6886a54b97c24d713a5d1036d2fb077c995271f629e67001af` |
+| `./.pytest_cache/.gitignore` | `3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd` |
+| `./.pytest_cache/CACHEDIR.TAG` | `37dc88ef9a0abeddbe81053a6dd8fdfb13afb613045ea1eb4a5c815a74a3bde4` |
+| `./.pytest_cache/README.md` | `73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad` |
+| `./.pytest_cache/v/cache/lastfailed` | `ab24dd0f51d12b234e5a8eccba378704a42e782e387b06a323a2e298a7003f59` |
+| `./.pytest_cache/v/cache/nodeids` | `cb9c00f080eb2a25cc2eef913d699db1b82ae16533c36e3a5b00ab229b2a1e88` |
+| `./MANIFEST.md` | `fc0ab4cce271c8890c92ff5d4048211456c9f9bfcfa46b61153b23ad5e7ca98b` |
 | `./README.md` | `5de4e42bba25c2228869f9714fbfb70fbddf88411b89ce4c382dca255a26f21f` |
 | `./architecture/插件架构.md` | `39794bc3863a7050322707da8e6be1e2caa751890ae41577ae707fc55d267484` |
 | `./architecture/系统矩阵.md` | `de232fe42585c089d2a65ff41c5f11e1caf52fdbc0a7c4bc7c20bb4432c82a3a` |
@@ -37,23 +41,47 @@
 | `./docs/19-自我优化闭环.md` | `2beb49a03794917c06194f51286c7da2daf21fffc7a5935c0fd07bf15f2b9058` |
 | `./docs/20-最终全貌报告.md` | `0954daa0e813dc095cfbc42b62e01fdab62342cd43f223347850e222118fe28b` |
 | `./docs/21-圆桌专家审议自我优化.md` | `45f48960851e7a55285eca2050002bf5e184beea8028e9e07ca60d2c112b7b57` |
-| `./docs/22-100用户压力模拟.md` | `b8ba357991a926754f092f93495c2c189d261a620e2c297175072b7bc40cc213` |
+| `./docs/22-100用户压力模拟.md` | `3c901ae4d1ad085e6b7b41692bbec7e0b5eb5b755e84194c642f40ae02d73429` |
+| `./mutants/.pytest_cache/.gitignore` | `3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd` |
+| `./mutants/.pytest_cache/CACHEDIR.TAG` | `37dc88ef9a0abeddbe81053a6dd8fdfb13afb613045ea1eb4a5c815a74a3bde4` |
+| `./mutants/.pytest_cache/README.md` | `73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad` |
+| `./mutants/.pytest_cache/v/cache/nodeids` | `7dbc0a131df658dcf4825a9476175b63fdf3f6a1579e3658fa6c83eea7f8621e` |
+| `./mutants/pyproject.toml` | `ccdeec14005ace6ce747abf45ea68e17b41cef2f5e925c5489e82d6b645a3dbd` |
+| `./mutants/src/experts.py` | `78659704c95d8418fdfef254c0bf83e44f5353825b12a63bf3073229a3194fde` |
+| `./mutants/src/experts.py.meta` | `824303cba823ece7a286a7b42f91e26f49d803f383e196a9b7bdcc6f15c90203` |
+| `./mutants/src/experts.py.spans` | `7e290f9085f45dd2e006fd0eccc4c359c27d6abfb515a978051df2a90fb21796` |
+| `./mutants/src/homology.py` | `5db39b0d1074adcbd28cac1ec18c8e0fcd784705b417c81f7a677f23b22e0183` |
+| `./mutants/src/homology.py.meta` | `13ff0188417cb51ad41b3094200a89868ab4888bd9e98c4413bfb7e663a5ea1f` |
+| `./mutants/src/homology.py.spans` | `cb46bdbeb7a80f6ac78221e4585055071e8e59c4aa3ce3c21915055c8f6bb14f` |
+| `./mutants/src/llm_gateway.py` | `5ebcb8de720ee76b75db82018152cd8e018406b520ef2d59a773ed487da893fb` |
+| `./mutants/src/llm_gateway.py.meta` | `4aa0d0589860e809e9265f54c667ee49f71f375ffbd60da3b91050b5d796d6e0` |
+| `./mutants/src/llm_gateway.py.spans` | `734e53c471ae86324a09893a1133e51ce82780420ad61239601d44dbcf22cb56` |
+| `./mutants/src/observability.py` | `3b03aae79bf4cc285567da6d17203106b67ca904620b84900815086b605231e3` |
+| `./mutants/src/observability.py.meta` | `8a8604e3c83c52e2577374c6049205c94f906f927dd4679a53f0a66c327438a4` |
+| `./mutants/src/observability.py.spans` | `546af6c59d2bf104a842ff4588cdda016db5300e07ebd73ae72911d5293656da` |
+| `./mutants/src/paradigms.py` | `71ebdab0280f92ccbfd4faa8c3812b44f3c95d0b77aa6046569fd49ad97661cd` |
+| `./mutants/src/paradigms.py.meta` | `e814e34a22fdba2d1ddc94970d5f7fa7ce3de8e0536330428aa7a3691524ef24` |
+| `./mutants/src/paradigms.py.spans` | `7cb0bec580bbf01fc112b2cc2957a2c0cd0aaf64dfd7027d1fa5d975252dc931` |
+| `./pyproject.toml` | `ccdeec14005ace6ce747abf45ea68e17b41cef2f5e925c5489e82d6b645a3dbd` |
 | `./src/README.md` | `2a5a21bbbd9c623c6d914d4177b566ff1a31fea31f679b57b622c160f148d759` |
-| `./src/agents.py` | `2b6adad752c27799cdcd1834250954719aa873e480216e5568d83a002f44a6d4` |
-| `./src/api_server.py` | `7f8b337d3d8b5346e3d7f0b4946aca93e73ebb54abc7087f9fe38486dc5eab47` |
-| `./src/consistency_check.py` | `cf9787a95bda8369368388c67a4008b3832a0fb968f39876ad857ae4bf9439e9` |
-| `./src/delivery_package.json` | `72845ef4d6c424c9af33aedcd3e793cfb7d72990665573c93ce00b2e9096e74f` |
-| `./src/evolution.py` | `6e2213d74646ca9a37a0415563a7b967c530e570ae55cced91912a7df3a83761` |
-| `./src/experts.py` | `2a8cb497adfcad62b321d1df3e15ae710728bc14f949ab75aae74603e76d7c77` |
-| `./src/homology.py` | `bfba0a2fd185cf919bcd5d769abc28b03ad9bf28c7858c43b7a70548dc616806` |
-| `./src/llm_gateway.py` | `34546c345ed2c7023f88f6229a4d1fcf95a1b9970fb4b33590b5468b38af45f0` |
-| `./src/main.py` | `0ba2801cd537c9fc8e95df16891bc4ef67ddda46938dd1848e7751f6f7f16d64` |
-| `./src/matrix_store.py` | `bbfc0bf876a8bf5dd59ad7bb2db946c2496faa0f13637ed7f5ad5130b7bd3271` |
-| `./src/observability.py` | `22e64a6d04e07d227ed5822e705cdfccf4ca30c183b70d1950078707c976cbe7` |
+| `./src/agents.py` | `b20363222bc1e0567b2862a636310eb9164e5aac117162a351ce3c33cbd4837c` |
+| `./src/api_server.py` | `608d15af8e83d950846933f0dc23575d15a29e779fb4c063beaf0e48c9396456` |
+| `./src/consistency_check.py` | `bb82e55b74a35982d2d46086a4f2bde6b4a88c2c64510e4e50b2fe0d8dd1b230` |
+| `./src/delivery_package.json` | `4acf62f6898787653a35304a85963d457d783d5e16d9105b8db2e4da48df82af` |
+| `./src/evolution.py` | `7bb265b08398e0dec6a8c683691275b3f47ea474531439c03980c64fc6715149` |
+| `./src/experts.py` | `80718455f03b9cbec41f4eaf36766008d6a978de5ee882ed57c5e22243549d26` |
+| `./src/homology.py` | `2191324f09a3283b80c6ac369ec12749408b012d0d17dc8d782529990783502a` |
+| `./src/llm_gateway.py` | `ca77079570d11c5b56bac764470ca7cc9a98e4726202053a0f6e9302ee9fb2b5` |
+| `./src/main.py` | `9e3bd250ac3bb630ea26a0307aa1c35f0d55bfbb00f4bfa44f6dcb96d8f2e83d` |
+| `./src/matrix_store.py` | `7af4503c8421a216e51d0a1ba30d19d2a94584c43a1f1186539018520a39e08d` |
+| `./src/observability.py` | `f37ac5973442bde54a0d3288e99c96328bba8e45c9a31e626def17c053d6f713` |
 | `./src/paradigms.py` | `d9269e7af5aa6950295d234f3c7bc7eb21edc296f730677c195e06775a58e99a` |
-| `./src/plugin_runtime.py` | `0b8b5d7f2f7006a40602b87df76a835d675f61874d6163bbfe14b69289d419c3` |
+| `./src/plugin_runtime.py` | `586bff8b68fabf22bcf0db88478bcf6f80cbfd11858c7c777fc351e789b8904e` |
 | `./src/plugins/step_s1_llm.py` | `a7e3d781e8831c56c39428cb66c6e4d2c3eb32e471ed38d0cac51856a3936982` |
 | `./src/requirements.txt` | `913c872d36f7860de7f4a0a6d2ea5c798ff56bc9113e11fe779fcc97ae9d52be` |
-| `./src/self_optimize.py` | `d299a760b4a3863321d728efc7aba8801616d68e4077e7fa257831712be52222` |
-| `./src/test_suite.py` | `4c612b46a4fe5a78b81bf7e0deece952719297d3bcc4fc16055eba9b5f1712c2` |
-| `./src/user_simulator.py` | `d92a24252f89b21cedbf017592822cadd6106fe6d7e659aab7d1e16d0255c067` |
+| `./src/self_optimize.py` | `8fc030fc1d5f4f0f0ba229393bf5a9467b09b88a9d89fe10802a8ec837fb2d83` |
+| `./src/test_suite.py` | `2084dadaf009338aa7c7d15c16375f5decb1a3e1f486ba085a228d90037a1719` |
+| `./src/tests/test_core_modules.py` | `3dda578c5bd4a1ecf51fc724faf1c172b1f26203484904a25e12b0b788fc9a8e` |
+| `./src/tests/test_llm_snapshot.py` | `f40315eaea12f342896d468fc52da4ed50a592f1d9368f1a1ceceb899f7aefca` |
+| `./src/tests/test_mutation.py` | `0b56c82da3d199c3aa5f696139abae6fd3afb17f7f35ba23857f46bb20d77d4c` |
+| `./src/user_simulator.py` | `27239978d98f032e6fd8bd2b2adf7b37bbbb73bbb40515b98f2338f3e29b8bd4` |
